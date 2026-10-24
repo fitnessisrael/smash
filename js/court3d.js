@@ -74,24 +74,49 @@ function buildCourt(g, sport) {
 }
 
 /* racket mesh: built along +Y (tip) with string face toward +Z, handle at origin */
+const GEO = {};
+function padelFaceGeo() {
+  if (GEO.padel) return GEO.padel;
+  // teardrop face (perforated, like a real padel racket), 45.5 cm total with the handle
+  const pts = [], cy = 0.325, rx = 0.13, ry = 0.13;
+  for (let i = 0; i < 64; i++) {
+    const a = i / 64 * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a);
+    const pinch = sn < 0 ? Math.pow(-sn, 2.2) : 0;
+    pts.push(new THREE.Vector2(rx * c * (1 - 0.72 * pinch), cy + ry * sn - 0.05 * pinch));
+  }
+  const shape = new THREE.Shape(pts);
+  for (let y = cy - 0.07; y <= cy + 0.09; y += 0.026) {
+    const half = Math.sqrt(Math.max(0, 1 - Math.pow((y - cy) / 0.1, 2))) * 0.085;
+    for (let x = -half; x <= half + 1e-6; x += 0.026) {
+      const h = new THREE.Path(); h.absarc(x, y, 0.0065, 0, Math.PI * 2, false); shape.holes.push(h);
+    }
+  }
+  const g = new THREE.ExtrudeGeometry(shape, { depth: 0.032, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 2, curveSegments: 10 });
+  g.translate(0, 0, -0.016);
+  return (GEO.padel = g);
+}
 export function makeRacket(sport = "tennis") {
   const g = new THREE.Group();
-  const L = sport === "padel" ? 0.46 : 0.68;
-  const handleL = sport === "padel" ? 0.14 : 0.2;
   const dark = new THREE.MeshLambertMaterial({ color: 0x1a1d16 });
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, handleL, 10), dark); handle.position.y = handleL / 2; g.add(handle);
-  const headLen = L - handleL - 0.05;
   if (sport === "padel") {
-    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.035, 28), new THREE.MeshLambertMaterial({ color: 0xeef2e2 }));
-    head.rotation.x = Math.PI / 2; head.scale.set(1, 1, 1.15); head.position.y = handleL + 0.05 + headLen / 2; g.add(head);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.012, 8, 32), new THREE.MeshLambertMaterial({ color: 0xd4ff1e }));
-    rim.scale.set(1, 1.15, 1); rim.position.copy(head.position); g.add(rim);
-  } else {
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.011, 8, 36), new THREE.MeshLambertMaterial({ color: 0xd4ff1e }));
-    rim.scale.set(1, 1.3, 1); rim.position.y = handleL + 0.05 + headLen / 2; g.add(rim);
-    const strings = new THREE.Mesh(new THREE.CircleGeometry(0.125, 28), new THREE.MeshBasicMaterial({ color: 0xeef2e2, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
-    strings.scale.set(1, 1.3, 1); strings.position.copy(rim.position); g.add(strings);
-    const throat = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.09, 6), dark); throat.position.y = handleL + 0.04; g.add(throat);
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.15, 10), dark); handle.position.y = 0.075; g.add(handle);
+    const strap = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.005, 6, 16), dark); strap.position.y = -0.03; strap.rotation.y = Math.PI / 2; g.add(strap);
+    const face = new THREE.Mesh(padelFaceGeo(), new THREE.MeshLambertMaterial({ color: 0xd4ff1e, side: THREE.DoubleSide }));
+    g.add(face);
+    const frame = new THREE.Mesh(padelFaceGeo(), new THREE.MeshBasicMaterial({ color: 0x0a0b08, wireframe: false }));
+    frame.scale.set(1.035, 1.0, 0.7); frame.position.y = -0.01; g.add(frame);
+    g.userData.len = 0.455;
+    return g;
+  }
+  const L = 0.68, handleL = 0.2, headLen = L - handleL - 0.05;
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, handleL, 10), dark); handle.position.y = handleL / 2; g.add(handle);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.011, 8, 36), new THREE.MeshLambertMaterial({ color: 0xd4ff1e }));
+  rim.scale.set(1, 1.3, 1); rim.position.y = handleL + 0.05 + headLen / 2; g.add(rim);
+  const strings = new THREE.Mesh(new THREE.CircleGeometry(0.125, 28), new THREE.MeshBasicMaterial({ color: 0xeef2e2, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+  strings.scale.set(1, 1.3, 1); strings.position.copy(rim.position); g.add(strings);
+  for (const sx of [-1, 1]) { // open throat, typical of a tennis racket
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.12, 6), dark);
+    t.position.set(sx * 0.035, handleL + 0.04, 0); t.rotation.z = sx * 0.45; g.add(t);
   }
   g.userData.len = L;
   return g;

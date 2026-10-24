@@ -104,36 +104,45 @@ function feed() {
   say(strokeName(G.sport, kind), "", 700);
 }
 
+// Forgiving: a reasonable swing in time goes over the net and lands in.
+// Only clearly early/late swings go wide, and only very weak or very closed swings hit the net.
 function onHit(m) {
   $("s-speed").textContent = Math.round(m.kmh);
   if (!ball || ball.state !== "in") return;
-  const now = performance.now() / 1000 - 0.04; // network/sensor latency allowance
+  const now = performance.now() / 1000 - 0.07; // network/sensor latency allowance
   const err = now - ball.tContact;
-  if (err < -0.28) { ball.missWhy = "הנפת מוקדם מדי"; return; } // ball keeps coming
-  if (err > 0.3) { ball.missWhy = "הנפת מאוחר מדי"; return; }
+  if (err < -0.4) { ball.missWhy = "הנפת מוקדם מדי"; return; } // ball keeps coming
+  if (err > 0.45) { ball.missWhy = "הנפת מאוחר מדי"; return; }
   ball.state = "hit"; sound.hit(G.sport, m.kmh / 80);
-  // where does it go? string face direction + timing
+  const k = COURT[G.sport], thr = SPORTS[G.sport].thr;
+  const timing = Math.max(0, 1 - Math.abs(err) / 0.45);          // 1 = perfect
+  const power = Math.max(0, Math.min(1, (m.kmh - thr) / 60));
   const face = m.face || [0, 0, -1];
-  let ang = Math.atan2(face[0], -face[2] || -0.001);
-  if (!isFinite(ang) || Math.abs(ang) > 1.2) ang = 0;
-  ang = ang * 0.6 + err * 1.8 * (ball.kind === "bh" ? -G.side : G.side);
   const overhead = ["smash", "bandeja"].includes(ball.kind) || (ball.kind === "serve" && G.sport === "tennis");
   const tilt = Math.asin(Math.max(-1, Math.min(1, face[1] || 0))) + (overhead ? 0.35 : 0);
-  const thr = SPORTS[G.sport].thr, k = COURT[G.sport];
-  const power = Math.max(0, Math.min(1, (m.kmh - thr) / 70));
-  const P = ballPos(now + 0.04).p, depth = ball.kind === "serve" ? 2.5 + power * 3.5 - tilt * 4 : 4 + power * 6 - tilt * 6;
-  const tz = -depth, tx = P[0] + Math.tan(ang) * (P[2] - tz);
-  const inNet = m.kmh < thr * 1.05 || tilt < -0.45;
-  const end = inNet ? [P[0] + (tx - P[0]) * 0.4, 0.4, 0.05] : [tx, 0.03, tz];
+  // aim: a little from the racket face, mostly from timing (early = pulled, late = pushed)
+  let faceAng = Math.atan2(face[0], -face[2] || -0.001); if (!isFinite(faceAng) || Math.abs(faceAng) > 1.2) faceAng = 0;
+  const pullSign = ball.kind === "bh" ? -G.side : G.side;
+  const ang = faceAng * 0.25 + err * 1.1 * pullSign + (Math.random() - 0.5) * 0.12;
+  const P = ballPos(now + 0.07).p;
+  const halfW = (G.sport === "tennis" ? k.single : k.width) / 2;
   const maxDepth = ball.kind === "serve" ? k.service : k.half;
-  const out = !inNet && (Math.abs(tx) > (G.sport === "tennis" ? k.single / 2 : k.width / 2) || depth > maxDepth || depth < 0.5);
+  let depth = ball.kind === "serve" ? 2.5 + power * 3 : 5 + power * 4.5 - tilt * 2.5;
+  let tx = P[0] + Math.tan(ang) * (P[2] + depth);
+  const inNet = (m.kmh < thr * 0.9 && timing < 0.5) || tilt < -0.9;
+  const goodSwing = timing > 0.35 && !inNet;
+  if (goodSwing) { // keep it in the court with a safety margin
+    depth = Math.min(maxDepth - 0.6, Math.max(2, depth));
+    tx = Math.max(-halfW + 0.4, Math.min(halfW - 0.4, tx));
+  }
+  const out = !inNet && !goodSwing && (Math.abs(tx) > halfW || depth > maxDepth || depth < 0.5);
+  const end = inNet ? [P[0] + (tx - P[0]) * 0.4, 0.4, 0.05] : [tx, 0.03, -depth];
   const dur = inNet ? 0.45 : 1.25 - power * 0.45;
-  const t = now + 0.04;
-  ball.segs = [{ a: P, b: end, h: inNet ? 0.15 : 1.0 + tilt * 2 + (1 - power) * 0.8, t0: t, dur, bounceAtEnd: !inNet }];
-  const quality = Math.abs(err) < 0.09 ? "מושלם" : err < 0 ? "קצת מוקדם" : "קצת מאוחר";
-  ball.result = inNet ? ["ברשת", quality] : out ? ["אאוט", quality] : ["נכנס!", quality];
+  ball.segs = [{ a: P, b: end, h: inNet ? 0.15 : Math.max(0.9, 1.2 + tilt * 1.5 + (1 - power) * 0.8), t0: now + 0.07, dur, bounceAtEnd: !inNet }];
+  const quality = Math.abs(err) < 0.12 ? "תזמון מושלם" : err < 0 ? "קצת מוקדם" : "קצת מאוחר";
+  ball.result = inNet ? ["ברשת", quality] : out ? ["אאוט", quality] : [power > 0.6 ? "ווינר!" : "נכנס!", quality];
   ball.good = !inNet && !out;
-  if (!inNet) { target.position.set(end[0], 0.02, end[2]); }
+  if (!inNet) target.position.set(end[0], 0.02, end[2]);
 }
 
 function finishBall() {
