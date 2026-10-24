@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>smash · משחק עם היד</title>
+<meta name="description" content="עומדים מול המצלמה, מחזיקים מחבט דמיוני, והמצלמה מזהה איזו יד חובטת ואיזו חבטה.">
+<link rel="icon" href="icon-64.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .stage{position:relative;width:100%;aspect-ratio:3/4;max-height:68vh;background:#0a0b08;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .stage.mirror video,.stage.mirror canvas{transform:scaleX(-1)}
+  .big-say{position:absolute;inset:auto 0 14% 0;text-align:center;font-size:44px;font-weight:900;color:var(--lime);text-shadow:0 2px 14px #000;pointer-events:none}
+  .tgt{position:absolute;top:12px;inset-inline:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+  .tgt span{background:#000a;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:800;font-size:15px}
+  .tgt b{color:var(--lime)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .stats div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
+  .stats b{display:block;font-size:24px;color:var(--lime)}
+  .stats span{font-size:12px;color:var(--muted)}
+  .tips{margin:0;padding-inline-start:20px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:6px}
+  .seg button{white-space:nowrap}
+  .note{font-size:12px;color:var(--muted)}
+  #err{color:var(--bad);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap" id="content" style="display:flex;flex-direction:column;gap:16px">
+  <div class="appbar">
+    <a href="/app.html" aria-label="חזרה"><img class="logo" src="logo.png" alt="smash"></a>
+    <a class="chip-trial" id="trial" href="/pro.html"></a>
+  </div>
+
+  <section id="v-setup" style="display:flex;flex-direction:column;gap:16px">
+    <h1 style="font-size:32px;line-height:1.1">משחק עם היד</h1>
+    <p style="margin:0;color:var(--muted)">בלי מחבט ובלי טלפון ביד. עומדים מול המצלמה, חובטים באוויר, והמצלמה מזהה איזו יד חובטת ואיזו חבטה זו.</p>
+    <span class="label">מצב</span>
+    <div class="seg" id="mode"><button data-v="free" aria-pressed="true">חופשי</button><button data-v="challenge" aria-pressed="false">אתגר</button></div>
+    <div id="chal" style="display:none;flex-direction:column;gap:8px">
+      <span class="label">אילו חבטות באתגר?</span>
+      <div class="seg" id="which"><button data-v="all" aria-pressed="true">הכל</button><button data-v="fh" aria-pressed="false">פורהנד</button><button data-v="bh" aria-pressed="false">בקהנד</button><button data-v="sm" aria-pressed="false">סמש</button></div>
+    </div>
+    <span class="label">מצלמה</span>
+    <div class="seg" id="cam"><button data-v="user" aria-pressed="true">קדמית</button><button data-v="environment" aria-pressed="false">אחורית</button></div>
+    <ul class="tips">
+      <li>עמוד מול המצלמה, במרחק 2–3 מטר, כשרואים אותך מהראש עד הברכיים.</li>
+      <li>שים את המכשיר יציב: על חצובה, על שולחן או נשען על קיר.</li>
+      <li>תאורה טובה, ובגדים שנבדלים מהרקע.</li>
+    </ul>
+    <button class="big" id="start">הפעל מצלמה</button>
+    <p class="note">הווידאו לא יוצא מהמכשיר. הניתוח נעשה כולו אצלך בדפדפן.</p>
+    <div id="err" hidden></div>
+  </section>
+
+  <section id="v-live" hidden style="display:none;flex-direction:column;gap:12px">
+    <div class="stage mirror" id="stage">
+      <video id="vid" playsinline muted></video>
+      <canvas id="ov"></canvas>
+      <div class="tgt"><span id="t-left">—</span><span id="t-score"></span></div>
+      <div class="big-say" id="say"></div>
+    </div>
+    <div class="stats">
+      <div><b id="n-all">0</b><span>חבטות</span></div>
+      <div><b id="n-r">0</b><span>ימין</span></div>
+      <div><b id="n-l">0</b><span>שמאל</span></div>
+      <div><b id="n-best">0</b><span>עוצמה שיא</span></div>
+    </div>
+    <div id="last" style="text-align:center;color:var(--muted);min-height:24px"></div>
+    <button class="big ghost" id="stop">סיום</button>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script src="js/a11y.js" type="module"></script>
+<script type="module">
+import { account } from "./js/account.js";
+import { Sound, $ } from "./js/core.js";
+import { loadModel, poseFromCanvas } from "./js/pose.js";
+
+if (!account.require()) throw new Error("no account");
+const paint = () => { const t = $("trial"); if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
+paint();
+
+const S = { mode: "free", which: "all", cam: "user" };
+for (const id of ["mode", "which", "cam"]) {
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    S[id] = b.dataset.v;
+    for (const x of $(id).children) x.setAttribute("aria-pressed", String(x === b));
+    if (id === "mode") $("chal").style.display = S.mode === "challenge" ? "flex" : "none";
+  });
+}
+const sound = new Sound();
+const err = t => { $("err").textContent = t; $("err").hidden = !t; };
+const show = v => { for (const id of ["v-setup", "v-live"]) { $(id).hidden = id !== v; $(id).style.display = id === v ? "flex" : "none"; } };
+
+const NAMES = { fh: "פורהנד", bh: "בקהנד", sm: "סמש" };
+// MoveNet keypoint indexes (anatomical left/right)
+const LS = 5, RS = 6, LW = 9, RW = 10, LE = 7, RE = 8;
+
+let stream = null, running = false, wl = null, counted = false;
+const cv = document.createElement("canvas"); cv.width = cv.height = 192;
+const cx = cv.getContext("2d", { willReadFrequently: true });
+
+const H = {}; // per-hand tracker
+function resetHands() {
+  for (const k of [LW, RW]) H[k] = { p: null, t: 0, v: 0, in: false, peak: 0, start: null, startT: 0, last: 0 };
+}
+const G = { all: 0, r: 0, l: 0, best: 0, score: 0, round: 0, target: null, window: 0, phase: "idle", timer: 0 };
+
+$("start").onclick = async () => {
+  sound.unlock(); // inside the tap, so iPhone plays sound
+  if (!account.canUse()) { location.href = "/pro.html?from=limit"; return; }
+  err("");
+  $("start").disabled = true; $("start").textContent = "טוען…";
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: S.cam, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+  } catch (e) {
+    err("אין גישה למצלמה. אשר את הרשאת המצלמה בדפדפן ונסה שוב."); reset(); return;
+  }
+  try {
+    await loadModel();
+  } catch (e) {
+    err("טעינת מנוע הראייה נכשלה. בדוק חיבור לאינטרנט ונסה שוב."); stopCam(); reset(); return;
+  }
+  const v = $("vid"); v.srcObject = stream; await v.play();
+  $("stage").classList.toggle("mirror", S.cam === "user");
+  show("v-live");
+  try { wl = await navigator.wakeLock.request("screen"); } catch (e) {}
+  counted = false; Object.assign(G, { all: 0, r: 0, l: 0, best: 0, score: 0, round: 0, target: null, phase: "idle" });
+  resetHands(); paintStats(); running = true; loop();
+  if (S.mode === "challenge") nextRound(1200); else say("חבוט!", 1200);
+};
+function reset() { $("start").disabled = false; $("start").textContent = "הפעל מצלמה"; }
+function stopCam() { running = false; clearTimeout(G.timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; try { wl && wl.release(); } catch (e) {} }
+$("stop").onclick = () => { stopCam(); show("v-setup"); reset(); };
+document.addEventListener("visibilitychange", () => { if (document.hidden && running) { stopCam(); show("v-setup"); reset(); } });
+
+function say(t, ms = 900) { const s = $("say"); s.textContent = t; clearTimeout(say.t); say.t = setTimeout(() => s.textContent = "", ms); }
+function paintStats() {
+  $("n-all").textContent = G.all; $("n-r").textContent = G.r; $("n-l").textContent = G.l; $("n-best").textContent = G.best;
+  $("t-score").textContent = S.mode === "challenge" ? "נקודות: " + G.score : "";
+}
+
+/* ---------- challenge: tick, tick, ding, then swing ---------- */
+function nextRound(delay = 1500) {
+  clearTimeout(G.timer); G.phase = "wait"; G.target = null; $("t-left").textContent = "היכון…";
+  const pool = S.which === "all" ? ["fh", "bh", "sm"] : [S.which];
+  const tgt = pool[Math.floor(Math.random() * pool.length)];
+  G.timer = setTimeout(() => {
+    $("t-left").textContent = "חבטה: " + NAMES[tgt]; say(NAMES[tgt], 2400);
+    sound.tick(); G.timer = setTimeout(() => { sound.tick(); G.timer = setTimeout(() => {
+      sound.tick(true); G.target = tgt; G.phase = "go"; G.window = performance.now() + 2600;
+      G.timer = setTimeout(() => { if (G.phase === "go") { G.phase = "idle"; say("פספוס", 900); nextRound(); } }, 2700);
+    }, 650); }, 650);
+  }, delay);
+}
+
+/* ---------- swing detection ---------- */
+function onSwing(wrist, peak, dx, dy, startAboveShoulder, u) {
+  const right = wrist === RW;
+  const lateral = dx * u[0] + dy * u[1]; // + = toward the player's left
+  const across = right ? lateral > 0 : lateral < 0;
+  let kind = across ? "fh" : "bh";
+  if (startAboveShoulder && dy > Math.abs(lateral)) kind = "sm";
+  const power = Math.max(1, Math.min(100, Math.round(peak / 14 * 100)));
+  if (!counted) { account.use(); counted = true; paint(); }
+  G.all++; right ? G.r++ : G.l++; G.best = Math.max(G.best, power);
+  let msg = (right ? "יד ימין" : "יד שמאל") + " · " + NAMES[kind] + " · עוצמה " + power;
+  if (S.mode === "challenge" && G.phase === "go") {
+    clearTimeout(G.timer);
+    if (kind === G.target) { G.score++; say("בול!", 900); sound.hit("tennis", power / 100); } else { say("לא " + NAMES[kind], 1000); sound.clip("bounce", 0.8); }
+    G.phase = "idle"; nextRound();
+  } else if (S.mode === "free") { sound.hit("tennis", power / 100); say(NAMES[kind], 700); }
+  $("last").textContent = msg; paintStats();
+}
+
+let busy = false;
+async function loop() {
+  if (!running) return;
+  if (!busy && $("vid").readyState >= 2) {
+    busy = true;
+    try { await step(); } catch (e) { console.error(e); }
+    busy = false;
+  }
+  requestAnimationFrame(loop);
+}
+async function step() {
+  const v = $("vid"), W = v.videoWidth, Hh = v.videoHeight; if (!W) return;
+  const sc = 192 / Math.max(W, Hh), w = W * sc, h = Hh * sc, ox = (192 - w) / 2, oy = (192 - h) / 2;
+  cx.fillStyle = "#000"; cx.fillRect(0, 0, 192, 192); cx.drawImage(v, ox, oy, w, h);
+  const k = await poseFromCanvas(cv), now = performance.now();
+  if (!running) return;
+  const P = i => ({ x: k[i].x * 192, y: k[i].y * 192, s: k[i].s });
+  const ls = P(LS), rs = P(RS);
+  draw(k, ox, oy, sc, W, Hh);
+  if (ls.s < 0.25 || rs.s < 0.25) return;
+  const sw = Math.hypot(ls.x - rs.x, ls.y - rs.y); if (sw < 6) return;
+  const u = [(ls.x - rs.x) / sw, (ls.y - rs.y) / sw];
+  const shY = (ls.y + rs.y) / 2;
+  for (const id of [LW, RW]) {
+    const t = H[id], p = P(id);
+    if (p.s < 0.2) { t.p = null; t.in = false; continue; }
+    p.x = t.p ? t.p.x * 0.4 + p.x * 0.6 : p.x; p.y = t.p ? t.p.y * 0.4 + p.y * 0.6 : p.y;
+    if (t.p) {
+      const dt = Math.max(0.02, (now - t.t) / 1000);
+      const inst = Math.hypot(p.x - t.p.x, p.y - t.p.y) / dt / sw; // shoulder-widths per second
+      t.v = t.v * 0.35 + inst * 0.65;
+      if (!t.in && t.v > 4.5 && now - t.last > 900) { t.in = true; t.peak = t.v; t.start = { x: t.p.x, y: t.p.y }; t.startT = now; }
+      else if (t.in) {
+        t.peak = Math.max(t.peak, t.v);
+        if (t.v < t.peak * 0.45 || now - t.startT > 900) {
+          t.in = false; t.last = now;
+          if (t.peak > 7 && now - t.startT > 60) {
+            // the faster hand wins, so the idle hand's jitter does not count
+            const o = H[id === LW ? RW : LW];
+            if (!(o.in && o.peak > t.peak) && !(now - o.last < 250 && o.lastPeak > t.peak)) {
+              t.lastPeak = t.peak;
+              onSwing(id, t.peak, p.x - t.start.x, p.y - t.start.y, t.start.y < shY - sw * 0.2, u);
+              flashHand = { id, until: now + 500 };
+            }
+          }
+        }
+      }
+    }
+    t.p = p; t.t = now;
+  }
+}
+
+/* ---------- overlay ---------- */
+let flashHand = null;
+function draw(k, ox, oy, sc, W, Hh) {
+  const c = $("ov"), st = $("stage"); if (c.width !== st.clientWidth * 2) { c.width = st.clientWidth * 2; c.height = st.clientHeight * 2; }
+  const g = c.getContext("2d"); g.clearRect(0, 0, c.width, c.height);
+  // map video (object-fit:cover) to canvas
+  const cw = c.width, ch = c.height, s = Math.max(cw / W, ch / Hh), dx = (cw - W * s) / 2, dy = (ch - Hh * s) / 2;
+  const M = i => ({ x: ((k[i].x * 192 - ox) / sc) * s + dx, y: ((k[i].y * 192 - oy) / sc) * s + dy, ok: k[i].s > 0.25 });
+  const now = performance.now();
+  g.lineWidth = 5; g.lineCap = "round";
+  for (const [a, b, w] of [[LS, LE], [LE, LW], [RS, RE], [RE, RW]]) {
+    const A = M(a), B = M(b); if (!A.ok || !B.ok) continue;
+    g.strokeStyle = "rgba(238,242,226,.55)"; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(B.x, B.y); g.stroke();
+  }
+  for (const id of [LW, RW]) {
+    const p = M(id); if (!p.ok) continue;
+    const hot = flashHand && flashHand.id === id && now < flashHand.until;
+    g.fillStyle = hot ? "#dafa54" : "rgba(218,250,84,.55)";
+    g.beginPath(); g.arc(p.x, p.y, hot ? 26 : 13, 0, 7); g.fill();
+    if (hot) {
+      g.save(); const m = $("stage").classList.contains("mirror"); if (m) { g.translate(p.x, p.y - 46); g.scale(-1, 1); } else g.translate(p.x, p.y - 46);
+      g.fillStyle = "#dafa54"; g.font = "800 30px Rubik,sans-serif"; g.textAlign = "center"; g.fillText(id === RW ? "ימין" : "שמאל", 0, 0); g.restore();
+    }
+  }
+}
+</script>
+</body>
+</html>
