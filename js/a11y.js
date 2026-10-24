@@ -49,7 +49,7 @@ function build() {
   const panel = document.createElement("div");
   panel.className = "a11y-panel"; panel.hidden = true; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", "הגדרות נגישות");
   panel.innerHTML = "<h2>נגישות</h2>" + OPTS.map(([k, he]) => `<button type="button" data-k="${k}" aria-pressed="${!!state[k]}">${he}<span aria-hidden="true">${state[k] ? "✓" : ""}</span></button>`).join("") +
-    '<button type="button" data-k="reset">איפוס הגדרות</button><a href="/accessibility">הצהרת נגישות</a>';
+    '<button type="button" data-k="reset">איפוס הגדרות</button><a href="/accessibility.html">הצהרת נגישות</a>';
   panel.addEventListener("click", e => {
     const b = e.target.closest("button[data-k]"); if (!b) return;
     if (b.dataset.k === "reset") state = {}; else state[b.dataset.k] = !state[b.dataset.k];

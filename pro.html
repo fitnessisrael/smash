@@ -15,27 +15,28 @@
 <body class="site">
 <div class="formwrap">
   <div class="formcard" style="max-width:480px">
-    <a href="/app"><img src="logo.png" alt="smash" style="height:34px;width:auto"></a>
+    <a href="/app.html"><img src="logo.png" alt="smash" style="height:34px;width:auto"></a>
     <div class="msg" id="thanks" hidden style="border-color:var(--lime);background:#141a04">תודה! המנוי שלך פעיל לשנה. אפשר להתאמן ללא הגבלה.</div>
     <div class="msg" id="limit" hidden>נגמרו 5 הניתוחים החינמיים. כדי להמשיך להתאמן, שדרג ל־PRO.</div>
     <div class="price pro">
       <h3>PRO שנתי</h3>
       <div class="amt">₪199<small> לשנה</small></div>
-      <p style="margin:0;color:#c4c8b6">תשלום אחד לשנה שלמה. בלי חידוש אוטומטי. <a href="/terms#pay" style="color:var(--lime)">תנאי תשלום וביטול</a></p>
+      <p style="margin:0;color:#c4c8b6">תשלום אחד לשנה שלמה. בלי חידוש אוטומטי. <a href="/terms.html#pay" style="color:var(--lime)">תנאי תשלום וביטול</a></p>
       <ul><li>ניתוחים ללא הגבלה</li><li>ניתוח וידאו של כל הגוף</li><li>משחק מול מסך, סלחני ואמיתי</li><li>אימון רצוף והיסטוריית מכות</li><li>טניס ופאדל</li></ul>
       <a class="pillbtn lg" id="pay" href="#">לתשלום מאובטח</a>
       <p class="hint" id="paynote" hidden>התשלום באתר ייפתח בקרוב. בינתיים אפשר להמשיך עם הניתוחים החינמיים.</p>
     </div>
-    <a class="pillbtn ghost" href="/app">חזרה לאימון</a>
+    <a class="pillbtn ghost" href="/app.html">חזרה לאימון</a>
   </div>
 </div>
 <script type="module">
-import { account, PLAN } from "./js/account.js";
+import { account, PLAN, NATIVE } from "./js/account.js";
 const q = new URLSearchParams(location.search);
-if (q.get("paid") === "1" && account.get()) { account.activatePro(); document.getElementById("thanks").hidden = false; history.replaceState(null, "", "/pro"); }
+if (q.get("paid") === "1" && account.get()) { account.activatePro(); document.getElementById("thanks").hidden = false; history.replaceState(null, "", "/pro.html"); }
 else if (q.get("from") === "limit") document.getElementById("limit").hidden = false;
 const pay = document.getElementById("pay");
-if (account.isPro()) { pay.textContent = "אתה כבר PRO ✓"; pay.href = "/app"; }
+if (account.isPro()) { pay.textContent = "אתה כבר PRO ✓"; pay.href = "/app.html"; }
+else if (NATIVE) { pay.textContent = "השדרוג באפליקציה יגיע בקרוב"; pay.removeAttribute("href"); pay.style.opacity = .5; }
 else if (PLAN.paymentUrl) pay.href = PLAN.paymentUrl;
 else pay.addEventListener("click", e => { e.preventDefault(); document.getElementById("paynote").hidden = false; });
 </script>

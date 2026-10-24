@@ -1,0 +1,9 @@
+{
+  "appId": "com.fitness360.smash",
+  "appName": "smash",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "server": { "androidScheme": "https" },
+  "ios": { "contentInset": "never", "backgroundColor": "#000000" },
+  "android": { "backgroundColor": "#000000" }
+}

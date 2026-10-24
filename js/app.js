@@ -32,7 +32,7 @@ function safety() {
     $("sf-no").onclick = () => { $("safety").hidden = true; res(false); };
   });
 }
-function gate() { if (account.canUse()) return true; location.href = "/pro?from=limit"; return false; }
+function gate() { if (account.canUse()) return true; location.href = "/pro.html?from=limit"; return false; }
 const sound = new Sound();
 const racket = new Racket();
 let sensorsOn = false;
@@ -56,7 +56,7 @@ pressGroup($("solo"), v => { S.solo = v; store.set("solo", v); stepText(); });
 function stepText() { $("setup-step3").textContent = S.solo === "drill" ? "עשה כמה מכות שתרצה. כל מכה נספרת ומשמיעה צליל. בסוף תראה הילוך חוזר של המכה הכי טובה." : "עשה מכה אחת. ההילוך החוזר נפתח לבד."; }
 stepText();
 $("go-replay").onclick = () => { renderStrokes(); show("setup"); };
-$("go-tv").onclick = () => { $("tv-url").textContent = location.host + "/tv"; renderFeed(); show("tv"); };
+$("go-tv").onclick = () => { $("tv-url").textContent = location.host + "/tv.html"; renderFeed(); show("tv"); };
 
 function renderStrokes() {
   const list = SPORTS[S.sport].strokes;
@@ -314,7 +314,7 @@ function renderMetrics(rep, pi) {
 /* ---------------- TV mode: phone is the racket ---------------- */
 let peer = null, conn = null, streamOff = null, hitOff = null, stats = { hits: 0, streak: 0, best: 0 };
 const urlCode = new URLSearchParams(location.search).get("tv");
-if (urlCode) { $("tv-code").value = urlCode; $("tv-url").textContent = location.host + "/tv"; renderFeed(); show("tv"); }
+if (urlCode) { $("tv-code").value = urlCode; $("tv-url").textContent = location.host + "/tv.html"; renderFeed(); show("tv"); }
 
 $("tv-connect").onclick = async () => {
   const code = $("tv-code").value.replace(/\D/g, "");
@@ -325,7 +325,7 @@ $("tv-connect").onclick = async () => {
     if (!window.Peer) throw new Error("lib");
     peer = new window.Peer(undefined, { debug: 0 });
     await new Promise((res, rej) => { peer.on("open", res); peer.on("error", rej); setTimeout(() => rej(new Error("timeout")), 9000); });
-    conn = peer.connect("smash-tv-" + code, { reliable: false, serialization: "json" });
+    conn = peer.connect("smash-tv-" + code, { reliable: true, serialization: "json" });
     await new Promise((res, rej) => { conn.on("open", res); conn.on("error", rej); peer.on("error", rej); setTimeout(() => rej(new Error("timeout")), 9000); });
     conn.on("data", onTvData);
     conn.on("close", () => { if (current === "remote") { $("rm-title").textContent = "החיבור למסך נותק"; if (lock.on) $("lk-t").textContent = "החיבור למסך נותק"; } });

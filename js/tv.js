@@ -45,12 +45,14 @@ function openRoom() {
 }
 if (window.Peer) openRoom(); else $("pair-status").textContent = "לא הצלחנו לטעון את רכיב החיבור. רענן את הדף.";
 $("sound").onclick = () => { sound.unlock(); $("sound").textContent = "הצליל פעיל ✓"; };
+// any tap or remote-control key on the TV turns sound on
+for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, () => sound.unlock(), { once: true });
 function send(m) { try { conn && conn.open && conn.send(m); } catch (e) {} }
 
 function onData(m) {
   if (m.type === "hello") { G.mode = m.mode || "easy"; G.side = m.side || 1; G.feed = m.feed || "mix"; if (m.sport !== G.sport) setSport(m.sport); placeCamera(); }
   else if (m.type === "q") { G.q = m.q; G.lastQ = performance.now(); if (m.kmh > 15) $("s-speed").textContent = m.kmh; }
-  else if (m.type === "start") { if (G.running) return; sound.unlock(); G.running = true; G.hits = 0; G.streak = 0; paint(); say("יאללה!", "הכדור בדרך"); setTimeout(feed, 1500); }
+  else if (m.type === "start") { if (G.running) return; sound.unlock(); G.running = true; G.hits = 0; G.streak = 0; paint(); say("יאללה!", "הכדור בדרך"); queueFeed(1500); }
   else if (m.type === "hit") onHit(m);
   else if (m.type === "mode") { G.mode = m.mode; say(m.mode === "real" ? "מצב אמיתי" : "מצב סלחני", m.mode === "real" ? "הכדור טס לפי המכה שלך" : "", 1400); }
   else if (m.type === "feed") { G.feed = m.feed; say(m.feed === "mix" ? "מעורב" : strokeName(G.sport, m.feed), "אימון חדש", 1200); }
@@ -102,8 +104,10 @@ function makeFeed(kind, now) {
   return { kind, P, tContact, segs };
 }
 
+let feedTimer = 0;
+function queueFeed(ms) { clearTimeout(feedTimer); feedTimer = setTimeout(feed, ms); }
 function feed() {
-  if (!G.running) return;
+  if (!G.running || ball) return;
   const kind = G.feed === "mix" ? (Math.random() < 0.55 ? "fh" : "bh") : G.feed;
   ball = Object.assign(makeFeed(kind, performance.now() / 1000), { state: "in" });
   B.ball.visible = B.shadow.visible = true; target.material.opacity = 0;
@@ -244,7 +248,7 @@ function finishBall() {
   say(r[0], r[1]); paint();
   send({ type: "score", hits: G.hits, streak: G.streak, text: r[0] });
   ball = null; setTimeout(() => { B.ball.visible = B.shadow.visible = false; }, 400);
-  setTimeout(feed, 1500);
+  queueFeed(1500);
 }
 
 function paint() { $("s-hits").textContent = G.hits; $("s-streak").textContent = G.streak; }

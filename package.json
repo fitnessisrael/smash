@@ -1,0 +1,21 @@
+{
+  "name": "smash",
+  "version": "1.0.0",
+  "private": true,
+  "description": "smash – tennis & padel swing trainer (web + iOS + Android)",
+  "scripts": {
+    "build": "node scripts/build-www.mjs",
+    "assets": "capacitor-assets generate --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000'",
+    "android": "npm run build && npx cap sync android",
+    "ios": "npm run build && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

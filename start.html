@@ -22,7 +22,7 @@
     <div class="field"><label for="email">אימייל</label><input id="email" type="email" inputmode="email" autocomplete="email" dir="ltr" required placeholder="you@email.com"></div>
     <span class="label">מה אתה משחק?</span>
     <div class="seg" id="sport"><button type="button" data-v="tennis" aria-pressed="true">טניס</button><button type="button" data-v="padel" aria-pressed="false">פאדל</button></div>
-    <label class="check"><input type="checkbox" id="ok"> <span>קראתי ואני מסכים ל<a href="/terms" target="_blank" style="color:var(--lime)">תנאי השימוש</a>, כולל <a href="/terms#safety" target="_blank" style="color:var(--lime)">הסרת האחריות</a>, ול<a href="/privacy" target="_blank" style="color:var(--lime)">מדיניות הפרטיות</a>. האימון על אחריותי.</span></label>
+    <label class="check"><input type="checkbox" id="ok"> <span>קראתי ואני מסכים ל<a href="/terms.html" target="_blank" style="color:var(--lime)">תנאי השימוש</a>, כולל <a href="/terms.html#safety" target="_blank" style="color:var(--lime)">הסרת האחריות</a>, ול<a href="/privacy.html" target="_blank" style="color:var(--lime)">מדיניות הפרטיות</a>. האימון על אחריותי.</span></label>
     <div class="err" id="err" role="alert"></div>
     <button class="big" type="submit">יאללה, מתחילים</button>
     <p class="hint" style="font-size:13px">בשלב זה החשבון נשמר בטלפון הזה.</p>
@@ -32,8 +32,8 @@
 <script type="module">
 import { account } from "./js/account.js";
 import { pressGroup, store } from "./js/core.js";
-const next = new URLSearchParams(location.search).get("next") || "/app";
-const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+const next = new URLSearchParams(location.search).get("next") || "/app.html";
+const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/app.html";
 let sport = "tennis";
 pressGroup(document.getElementById("sport"), v => (sport = v));
 const prev = account.get();

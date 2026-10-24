@@ -66,7 +66,7 @@ export const store = {
 // World frame: y up, -z toward the net, x to the player's right.
 export class Racket {
   constructor() {
-    this.q = Q.id(); this.g = [0, 1, 0]; this.last = 0; this.w = 0; this.ok = false; this.listeners = [];
+    this.q = Q.id(); this.g = [0, 1, 0]; this.gSign = 1; this.last = 0; this.w = 0; this.ok = false; this.listeners = [];
     this.onMotion = this.onMotion.bind(this);
   }
   static supported() { return typeof window !== "undefined" && "DeviceMotionEvent" in window; }
@@ -85,7 +85,10 @@ export class Racket {
   on(fn) { this.listeners.push(fn); return () => (this.listeners = this.listeners.filter(f => f !== fn)); }
   // Align the racket to the world: tip up from gravity, string face toward the net.
   zero() {
-    const up = V.norm(this.g);
+    // At the ready stance the racket tip points up. Some phones report gravity with the opposite sign,
+    // so we learn the sign here and use it for the drift correction afterwards.
+    this.gSign = this.g[1] < 0 ? -1 : 1;
+    const up = V.norm(V.sc(this.g, this.gSign));
     let q = Q.fromTo(up, [0, 1, 0]);
     const face = Q.rot(q, [0, 0, 1]);
     if (Math.hypot(face[0], face[2]) > 0.2) {
@@ -110,6 +113,15 @@ export class Racket {
     const wx = (rr.beta || 0) * Math.PI / 180, wy = (rr.gamma || 0) * Math.PI / 180, wz = (rr.alpha || 0) * Math.PI / 180;
     const w = Math.hypot(wx, wy, wz); this.w = w;
     if (w > 1e-6) this.q = Q.norm(Q.mul(this.q, Q.axisAngle([wx, wy, wz], w * dt)));
+    // drift correction: when the phone is calm, gently pull the tilt toward measured gravity
+    if (ag && ag.x != null && w < 1.2) {
+      const a = V.sc([ag.x, ag.y, ag.z], this.gSign), n = Math.hypot(...a);
+      if (n > 8.3 && n < 11.3) {
+        const meas = V.sc(a, 1 / n), pred = Q.rot([this.q[0], -this.q[1], -this.q[2], -this.q[3]], [0, 1, 0]);
+        const axis = V.cross(meas, pred), s = Math.hypot(...axis);
+        if (s > 1e-4) this.q = Q.norm(Q.mul(this.q, Q.axisAngle(axis, Math.min(s, 0.02))));
+      }
+    }
     const sample = { t: now, q: this.q, w, dt, wv: [wx, wy, wz] };
     for (const f of this.listeners) f(sample);
   }
@@ -262,6 +274,7 @@ export class PlayLock {
   }
   release(byUser = false) {
     if (!this.on) return; this.on = false; this.el.hidden = true; document.body.classList.remove("locked");
+    if (history.state && history.state.lock) history.back(); // drop the extra history step we added
     try { this.wl && this.wl.release(); } catch (e) {} this.wl = null;
     try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
     if (byUser && this.onUnlock) this.onUnlock();

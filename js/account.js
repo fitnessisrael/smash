@@ -9,6 +9,9 @@ export const PLAN = {
   paymentUrl: "",
 };
 
+// running inside the App Store / Google Play app? (store rules: no outside payment links there)
+export const NATIVE = !!(typeof window !== "undefined" && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
 const KEY = "smash:account";
 function read() { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } }
 function write(a) { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} return a; }
@@ -30,7 +33,7 @@ export const account = {
   use() { const a = read(); if (!a || this.isPro()) return; a.used = (a.used || 0) + 1; write(a); },
   // send to signup when there is no account
   require(next = location.pathname + location.search) {
-    if (!read()) { location.replace("/start?next=" + encodeURIComponent(next)); return false; }
+    if (!read()) { location.replace("/start.html?next=" + encodeURIComponent(next)); return false; }
     return true;
   },
 };
