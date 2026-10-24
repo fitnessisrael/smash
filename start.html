@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/site.css">
+<title>smash · הרשמה</title>
+</head>
+<body class="site">
+<div class="formwrap">
+  <form class="formcard" id="f" novalidate>
+    <a href="/"><img src="logo.png" alt="smash" style="height:34px;width:auto"></a>
+    <h1>5 ניתוחים.<br>חינם.</h1>
+    <p style="margin:0;color:var(--muted)">בלי כרטיס אשראי. נרשמים ומתחילים להכות.</p>
+    <div class="field"><label for="name">שם</label><input id="name" autocomplete="given-name" required placeholder="איך קוראים לך?"></div>
+    <div class="field"><label for="email">אימייל</label><input id="email" type="email" inputmode="email" autocomplete="email" dir="ltr" required placeholder="you@email.com"></div>
+    <span class="label">מה אתה משחק?</span>
+    <div class="seg" id="sport"><button type="button" data-v="tennis" aria-pressed="true">טניס</button><button type="button" data-v="padel" aria-pressed="false">פאדל</button></div>
+    <label class="check"><input type="checkbox" id="ok"> <span>אני מאשר שהאימון על אחריותי, ושאני משאיר מקום פנוי סביבי כשאני מכה עם הטלפון.</span></label>
+    <div class="err" id="err" role="alert"></div>
+    <button class="big" type="submit">יאללה, מתחילים</button>
+    <p class="hint" style="font-size:13px">בשלב זה החשבון נשמר בטלפון הזה.</p>
+  </form>
+</div>
+<script type="module">
+import { account } from "./js/account.js";
+import { pressGroup, store } from "./js/core.js";
+const next = new URLSearchParams(location.search).get("next") || "/app";
+const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+let sport = "tennis";
+pressGroup(document.getElementById("sport"), v => (sport = v));
+const prev = account.get();
+if (prev) { document.getElementById("name").value = prev.name || ""; document.getElementById("email").value = prev.email || ""; }
+document.getElementById("f").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = document.getElementById("name").value.trim(), email = document.getElementById("email").value.trim();
+  const err = document.getElementById("err");
+  if (!name) return (err.textContent = "כתוב את השם שלך.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return (err.textContent = "האימייל לא נראה תקין. בדוק אותו שוב.");
+  if (!document.getElementById("ok").checked) return (err.textContent = "סמן את התיבה כדי להמשיך.");
+  account.create({ name, email, sport }); store.set("sport", sport);
+  location.replace(safeNext);
+});
+</script>
+</body>
+</html>

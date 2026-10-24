@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/site.css">
+<title>smash · PRO</title>
+</head>
+<body class="site">
+<div class="formwrap">
+  <div class="formcard" style="max-width:480px">
+    <a href="/app"><img src="logo.png" alt="smash" style="height:34px;width:auto"></a>
+    <div class="msg" id="limit" hidden>נגמרו 5 הניתוחים החינמיים. כדי להמשיך להתאמן, שדרג ל־PRO.</div>
+    <div class="price pro">
+      <h3>PRO שנתי</h3>
+      <div class="amt">₪199<small> לשנה</small></div>
+      <p style="margin:0;color:#c4c8b6">תשלום אחד לשנה שלמה. בלי חידוש אוטומטי.</p>
+      <ul><li>ניתוחים ללא הגבלה</li><li>ניתוח וידאו של כל הגוף</li><li>משחק מול מסך, סלחני ואמיתי</li><li>אימון רצוף והיסטוריית מכות</li><li>טניס ופאדל</li></ul>
+      <a class="pillbtn lg" id="pay" href="#">לתשלום מאובטח</a>
+      <p class="hint" id="paynote" hidden>התשלום באתר ייפתח בקרוב. בינתיים אפשר להמשיך עם הניתוחים החינמיים.</p>
+    </div>
+    <a class="pillbtn ghost" href="/app">חזרה לאימון</a>
+  </div>
+</div>
+<script type="module">
+import { account, PLAN } from "./js/account.js";
+if (new URLSearchParams(location.search).get("from") === "limit") document.getElementById("limit").hidden = false;
+const pay = document.getElementById("pay");
+if (account.isPro()) { pay.textContent = "אתה כבר PRO ✓"; pay.href = "/app"; }
+else if (PLAN.paymentUrl) pay.href = PLAN.paymentUrl;
+else pay.addEventListener("click", e => { e.preventDefault(); document.getElementById("paynote").hidden = false; });
+</script>
+</body>
+</html>

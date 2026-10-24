@@ -1,4 +1,5 @@
 // סמש — phone app
+import { account, PLAN } from "./account.js";
 import { Q, SPORTS, strokeName, store, Racket, SwingDetector, Sound, PlayLock, armPose, demoSwing, $, pressGroup } from "./core.js";
 // 3D is loaded on demand so the rest of the app works even if it is slow to load
 let makeScene, makeRacket, makeBall, poseRacket, COURT, THREE, OrbitControls;
@@ -12,6 +13,17 @@ const S = {
   sport: store.get("sport", "tennis"), side: store.get("side", 1), stroke: store.get("stroke", "fh"),
   feed: store.get("feed", "mix"), pmode: store.get("pmode", "easy"), solo: store.get("solo", "one"),
 };
+if (!account.require()) throw new Error("signup first");
+const me = account.get();
+function paintTrial() {
+  const el = $("trial");
+  if (account.isPro()) { el.className = "chip-trial pro"; el.textContent = "PRO"; }
+  else { el.className = "chip-trial"; el.innerHTML = `<b>${account.left()}</b> מתוך ${PLAN.freeTries} ניתוחים חינם`; }
+}
+paintTrial();
+if (me && me.name) $("hello").textContent = `${me.name.split(" ")[0]}, הטלפון שלך הוא המחבט.`;
+// gate: every analysis (one swing, a drill, a screen game) uses one free try
+function gate() { if (account.canUse()) return true; location.href = "/pro?from=limit"; return false; }
 const sound = new Sound();
 const racket = new Racket();
 let sensorsOn = false;
@@ -93,6 +105,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 /* ---------------- phone only: one swing or a drill ---------------- */
 $("start-replay").onclick = async () => {
   $("setup-msg").hidden = true;
+  if (!gate()) return;
   const ok = await ensureSensors();
   if (!ok) { // computer / no sensors: show a demo replay
     openReplay({ d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: demoSwing(S.stroke), demo: true });
@@ -129,6 +142,7 @@ async function record() {
   off(); onLockRelease = null; lock.release();
   if (cancelled) return;
   if (!peak) { setupMsg("לא זיהינו מכה. נסה שוב, ותן לראש המחבט להשתחרר מהר יותר."); return; }
+  account.use(); paintTrial();
   saveAndOpen(frames, peak.t - t0);
 }
 function saveAndOpen(frames, tp) { // keep ~1.2 s before the peak and 0.7 s after
@@ -143,6 +157,7 @@ async function drill() {
   let stopped = false; onLockRelease = () => { stopped = true; };
   lockScreen({ mode: "אימון רצוף · " + strokeName(S.sport, S.stroke), title: "היכנס לעמדת מוכנות", text: "שני טיקים, ואז צלצול." });
   if (!(await countIn(() => stopped))) return;
+  account.use(); paintTrial();
   lockScreen({ mode: "אימון רצוף · " + strokeName(S.sport, S.stroke), stats: true });
   $("lk-a-l").textContent = "מכות"; $("lk-b-l").textContent = "ממוצע";
   const det = new SwingDetector(S.sport), buf = []; let n = 0, sum = 0, bestKmh = 0, best = null, pendingBest = null;
@@ -302,7 +317,7 @@ $("tv-connect").onclick = async () => {
     conn.on("data", onTvData);
     conn.on("close", () => { if (current === "remote") { $("rm-title").textContent = "החיבור למסך נותק"; if (lock.on) $("lk-t").textContent = "החיבור למסך נותק"; } });
     send({ type: "hello", sport: S.sport, side: S.side, feed: S.feed, mode: S.pmode }); renderFeed();
-    stats = { hits: 0, streak: 0, best: 0 }; paintStats();
+    stats = { hits: 0, streak: 0, best: 0 }; paintStats(); sessionCounted = false;
     show("remote");
   } catch (e) {
     tvErr("לא הצלחנו להתחבר. בדוק שהקוד נכון ושהטלפון והמסך מחוברים לאינטרנט.");
@@ -313,7 +328,9 @@ $("tv-connect").onclick = async () => {
 function tvErr(t) { $("tv-err").textContent = t; $("tv-err").hidden = !t; }
 function send(m) { try { conn && conn.open && conn.send(m); } catch (e) {} }
 
+let sessionCounted = false;
 $("rm-start").onclick = async () => {
+  if (!sessionCounted && !gate()) return;
   const ok = await ensureSensors();
   if (!ok) { $("rm-hint").textContent = "לא קיבלנו גישה לחיישני התנועה. פתח את האתר בטלפון (ספארי או כרום) ואשר גישה לתנועה."; return; }
   let stopped = false;
@@ -323,6 +340,7 @@ $("rm-start").onclick = async () => {
   if (!(await countIn(() => stopped))) return;
   lockScreen({ mode, stats: true });
   $("lk-a-l").textContent = "נכנסו"; $("lk-b-l").textContent = "רצף";
+  if (!sessionCounted) { account.use(); sessionCounted = true; paintTrial(); }
   send({ type: "feed", feed: S.feed }); send({ type: "start" });
   startStreaming();
 };

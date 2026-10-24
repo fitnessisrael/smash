@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0b08">
-<title>סמש · מסך</title>
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#000000">
+<title>smash · מסך</title>
+<link rel="icon" href="icon-64.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
 <link rel="stylesheet" href="css/app.css">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
@@ -38,7 +38,7 @@
 <body>
 <canvas id="c"></canvas>
 <div class="hud">
-  <div class="brand"><svg class="ball" viewBox="0 0 34 34" style="width:5vh;height:5vh" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="#d4ff1e"/><path d="M5 9c7 3 9 12 4 20M29 9c-7 3-9 12-4 20" stroke="#0a0b08" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg><h1>סמש</h1></div>
+  <img src="logo.png" alt="smash" style="height:5.5vh;width:auto">
   <div class="score"><div><b id="s-streak">0</b><span>רצף</span></div><div><b id="s-hits">0</b><span>נכנסו</span></div><div><b id="s-speed">—</b><span>קמ״ש</span></div></div>
 </div>
 <div class="say" id="say"></div>
@@ -49,7 +49,7 @@
     <div class="qr" id="qr"></div>
     <div>
       <h2>חבר את הטלפון</h2>
-      <p>סרוק את הקוד עם הטלפון,<br>או פתח בטלפון את סמש, בחר "משחק מול מסך" והקלד:</p>
+      <p>סרוק את הקוד עם הטלפון,<br>או פתח בטלפון את smash, בחר "משחק מול מסך" והקלד:</p>
       <div class="code" id="code">····</div>
       <p id="pair-status">מכין חדר…</p>
       <button class="big" id="sound" style="margin-top:2vh;font-size:3vh">לחץ כאן להפעלת צליל</button>

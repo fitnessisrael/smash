@@ -28,7 +28,7 @@ function openRoom() {
   peer = new window.Peer("smash-tv-" + code, { debug: 0 });
   peer.on("open", () => {
     $("code").textContent = code; $("pair-status").textContent = "ממתין לטלפון…";
-    const url = `${location.origin}/?tv=${code}`;
+    const url = `${location.origin}/app?tv=${code}`;
     try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); $("qr").innerHTML = qr.createSvgTag({ scalable: true, margin: 0 }); } catch (e) {}
   });
   peer.on("error", e => {

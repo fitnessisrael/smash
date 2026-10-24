@@ -3,144 +3,191 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0b08">
-<title>סמש</title>
-<meta name="description" content="הטלפון הוא המחבט: מכים, שומעים את החבטה, ורואים הילוך חוזר. טניס ופאדל.">
+<meta name="theme-color" content="#000000">
+<title>smash · אימון טניס ופאדל מהטלפון</title>
+<meta name="description" content="הטלפון שלך הוא המחבט. מכים בבית, שומעים את החבטה, ורואים הילוך חוזר עם ציון וטיפים. טניס ופאדל. 5 ניתוחים בחינם.">
+<meta property="og:title" content="smash · הטלפון שלך הוא המחבט">
+<meta property="og:description" content="אימון חבטות טניס ופאדל מכל מקום. 5 ניתוחים בחינם.">
+<meta property="og:image" content="/icon-512.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-64.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
 <link rel="stylesheet" href="css/app.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<link rel="stylesheet" href="css/site.css">
 </head>
-<body>
-<div class="wrap">
+<body class="site">
 
-<!-- ============ HOME ============ -->
-<section id="v-home" class="view" style="display:flex;flex-direction:column;gap:20px">
-  <div class="top">
-    <div class="brand">
-      <svg class="ball" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="#d4ff1e"/><path d="M5 9c7 3 9 12 4 20M29 9c-7 3-9 12-4 20" stroke="#0a0b08" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
-      <div><h1>סמש</h1><small>הטלפון הוא המחבט</small></div>
+<header class="nav">
+  <div class="inner">
+    <a href="/" aria-label="smash"><img src="logo.png" alt="smash"></a>
+    <nav><a href="#modes">איך מתאמנים</a><a href="#metrics">מה נמדד</a><a href="#price">מחיר</a><a href="#faq">שאלות</a></nav>
+    <a class="pillbtn" href="/start" data-cta>התחל בחינם</a>
+  </div>
+</header>
+
+<main>
+  <section class="band hero">
+    <div class="inner">
+      <div>
+        <span class="eyebrow">טניס · פאדל · מכל מקום</span>
+        <h1>הטלפון שלך<br>הוא <em>המחבט.</em></h1>
+        <p class="lead">מחזיקים את הטלפון כמו מחבט ומכים. smash שומע את רגע המגע, מודד את התנופה, ומראה לך הילוך חוזר עם ציון וטיפים בעברית.</p>
+        <div class="ctas">
+          <a class="pillbtn lg" href="/start" data-cta>התחל בחינם · 5 ניתוחים</a>
+          <a class="pillbtn ghost lg" href="#how">איך זה עובד</a>
+        </div>
+        <small class="note">בלי כרטיס אשראי. אחרי 5 הניתוחים: ₪199 לשנה, תשלום אחד.</small>
+      </div>
+
+      <div class="phones" aria-hidden="true">
+        <div class="phone b">
+          <div class="scr">
+            <h4>הילוך<br>חוזר</h4>
+            <div class="court">
+              <svg viewBox="0 0 200 260">
+                <g stroke="#f1f4e6" stroke-opacity=".25" stroke-width="1.5" fill="none">
+                  <path d="M30 250 L70 60 L130 60 L170 250"/><path d="M45 180 L155 180"/><path d="M100 60 L100 180"/><path d="M58 120 L142 120"/>
+                </g>
+                <path d="M150 200 C 70 230, 30 160, 60 110 S 150 70, 160 40" stroke="url(#tr)" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <defs><linearGradient id="tr" x1="1" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#dafa54" stop-opacity=".1"/><stop offset=".55" stop-color="#dafa54"/><stop offset="1" stop-color="#dafa54" stop-opacity=".2"/></linearGradient>
+                <radialGradient id="gl"><stop offset="0" stop-color="#dafa54" stop-opacity=".9"/><stop offset="1" stop-color="#dafa54" stop-opacity="0"/></radialGradient></defs>
+                <circle cx="66" cy="104" r="22" fill="url(#gl)"/><circle cx="66" cy="104" r="8" fill="#dafa54"/>
+                <g transform="translate(118 68) rotate(35)"><ellipse rx="17" ry="22" fill="none" stroke="#dafa54" stroke-width="3"/><rect x="-2.5" y="22" width="5" height="34" rx="2" fill="#2b2e24"/></g>
+              </svg>
+            </div>
+            <div class="rowstat"><span>פורהנד · ציון</span><b>86</b></div>
+            <div class="meter"><i></i></div>
+          </div>
+        </div>
+        <div class="phone a">
+          <div class="scr">
+            <h4>מהירות<br>ראש מחבט</h4>
+            <div class="gauge">
+              <svg viewBox="0 0 200 200">
+                <g stroke="#0b0d02" stroke-width="2" stroke-linecap="round" opacity=".35" id="ticks"></g>
+                <circle cx="100" cy="100" r="74" fill="none" stroke="#0b0d02" stroke-opacity=".15" stroke-width="5"/>
+                <circle cx="100" cy="100" r="74" fill="none" stroke="#0b0d02" stroke-width="5" stroke-linecap="round" stroke-dasharray="465" stroke-dashoffset="140" transform="rotate(-90 100 100)"/>
+              </svg>
+              <div class="num">72<small>קמ״ש</small></div>
+            </div>
+            <svg class="wave" viewBox="0 0 220 64" preserveAspectRatio="none"><path id="wave" d="" fill="none" stroke="#0b0d02" stroke-width="2.4"/></svg>
+            <div class="okpill"><b>✓</b> תזמון מושלם</div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div style="display:flex;flex-direction:column;gap:8px">
-    <span class="label">מה משחקים?</span>
-    <div class="seg" id="sport"><button data-v="tennis">טניס</button><button data-v="padel">פאדל</button></div>
-    <span class="label">יד חובטת</span>
-    <div class="seg" id="hand"><button data-v="1">ימין</button><button data-v="-1">שמאל</button></div>
-  </div>
+  <div class="ticker" aria-hidden="true"><div><span>פורהנד</span><span>בקהנד</span><span>הגשה</span><span>סמש</span><span>וולה</span><span>בנדחה</span><span>פורהנד</span><span>בקהנד</span><span>הגשה</span><span>סמש</span></div></div>
 
-  <button class="mode hero" id="go-tv">
-    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="7" width="34" height="21" rx="3"/><path d="M14 34h12M20 28v6"/><circle cx="25" cy="17" r="3" fill="currentColor"/></svg>
-    <div><b>משחק מול מסך</b><span>טלוויזיה או טאבלט מראים מגרש וכדור. אתה מכה עם הטלפון.</span></div>
-  </button>
-  <button class="mode" id="go-replay">
-    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="12" y="3" width="16" height="34" rx="3"/><path d="M6 14c-3 4-3 8 0 12M34 14c3 4 3 8 0 12"/></svg>
-    <div><b>טלפון בלבד</b><span>מכה אחת, ואז הילוך חוזר של התנועה בתלת־ממד.</span></div>
-  </button>
-  <a class="mode" href="analyze.html" style="text-decoration:none">
-    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="10" width="24" height="20" rx="3"/><path d="M27 17l10-5v16l-10-5"/></svg>
-    <div><b>ניתוח וידאו</b><span>מצלמים את עצמך מהצד ומקבלים ניתוח של כל הגוף.</span></div>
-  </a>
+  <section class="band" id="modes">
+    <div class="inner">
+      <div class="sec-h"><h2>שלוש דרכים להתאמן.</h2><p>בסלון, במלון או לפני משחק. בלי מגרש, בלי כדור ובלי שותף.</p></div>
+      <div class="modes3">
+        <article class="mcard hot">
+          <div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="3" y="7" width="34" height="21" rx="3"/><path d="M14 34h12M20 28v6"/><circle cx="25" cy="17" r="3" fill="currentColor"/></svg></div>
+          <h3>משחק מול מסך</h3>
+          <p>הטלוויזיה או הטאבלט מציגים מגרש ומכונת כדורים. אתה מכה עם הטלפון, והכדור עף לפי זווית המחבט, המהירות והתזמון שלך.</p>
+          <span class="foot">מצב סלחני או מצב אמיתי</span>
+        </article>
+        <article class="mcard">
+          <div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="12" y="3" width="16" height="34" rx="3"/><path d="M6 14c-3 4-3 8 0 12M34 14c3 4 3 8 0 12"/></svg></div>
+          <h3>טלפון בלבד</h3>
+          <p>שני טיקים, צלצול, מכה. נפתח הילוך חוזר בתלת־ממד של מסלול המחבט, עם ציון וטיפים. אפשר גם אימון רצוף.</p>
+          <span class="foot">כלול בניתוחים החינמיים</span>
+        </article>
+        <article class="mcard">
+          <span class="tag">PRO</span>
+          <div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="3" y="10" width="24" height="20" rx="3"/><path d="M27 17l10-5v16l-10-5"/></svg></div>
+          <h3>ניתוח וידאו</h3>
+          <p>מצלמים את עצמך מהצד. smash מזהה 17 נקודות בגוף ובודק ברכיים, סיבוב כתפיים, נקודת מגע וגמר תנועה.</p>
+          <span class="foot">הסרטון לא יוצא מהטלפון</span>
+        </article>
+      </div>
+    </div>
+  </section>
 
-  <div id="replays-wrap" hidden>
-    <span class="label">הילוכים חוזרים אחרונים</span>
-    <div class="list" id="replays"></div>
-  </div>
-  <footer>סמש · אימון חבטות מכל מקום. המהירות היא הערכה לפי סיבוב הטלפון.</footer>
-</section>
+  <section class="band" id="metrics" style="padding-top:0">
+    <div class="inner">
+      <div class="sec-h"><h2>מה נמדד בכל מכה.</h2><p>לכל מדד יש טווח נכון לפי סוג החבטה, וטיפ אחד ברור לשיפור.</p></div>
+      <div class="metrics5">
+        <div class="mt"><b>72<small> קמ״ש</small></b><span>מהירות ראש המחבט</span><p>כמה מהר המחבט עובר דרך הכדור.</p></div>
+        <div class="mt"><b>×2.1</b><span>האצה למגע</span><p>האם המחבט מאיץ ממש לפני הפגיעה.</p></div>
+        <div class="mt"><b>0.28<small> שנ׳</small></b><span>זמן תנופה</span><p>מתחילת התנועה ועד השיא.</p></div>
+        <div class="mt"><b>5°</b><span>פני המחבט</span><p>פתוח, סגור או ישר ברגע המגע.</p></div>
+        <div class="mt"><b>140°</b><span>גמר תנועה</span><p>כמה המחבט ממשיך אחרי המגע.</p></div>
+      </div>
+    </div>
+  </section>
 
-<!-- ============ REPLAY SETUP ============ -->
-<section id="v-setup" class="view" hidden style="flex-direction:column;gap:18px">
-  <button class="back" data-back>→ חזרה</button>
-  <h2 class="title">טלפון בלבד</h2>
-  <span class="label">על איזו חבטה מתאמנים?</span>
-  <div class="grid2" id="strokes"></div>
-  <span class="label">איך?</span>
-  <div class="seg" id="solo"><button data-v="one">מכה אחת + הילוך חוזר</button><button data-v="drill">אימון רצוף</button></div>
-  <div class="card">
-    <ol class="steps">
-      <li><i>1</i><span>תחזיק את הטלפון כמו ידית של מחבט. <b>החלק העליון של הטלפון = ראש המחבט. המסך = המיתרים.</b></span></li>
-      <li><i>2</i><span>לחץ "יאללה" ועמוד בעמדת מוכנות. תשמע שני טיקים ואז צלצול.</span></li>
-      <li><i>3</i><span id="setup-step3">עשה מכה אחת. ההילוך החוזר נפתח לבד.</span></li>
-    </ol>
-  </div>
-  <p class="hint">המסך ננעל בזמן האימון, כדי שנגיעות בטעות לא יעצרו אותו. לפתיחה: מחזיקים את הכפתור למטה 2 שניות.</p>
-  <div class="msg" id="setup-msg" hidden></div>
-  <button class="big" id="start-replay">יאללה</button>
-</section>
+  <section class="band" id="how" style="padding-top:0">
+    <div class="inner">
+      <div class="sec-h"><h2>מתחילים בדקה.</h2></div>
+      <ol class="how">
+        <li><h3>נרשמים בחינם</h3><p>שם ואימייל. מקבלים 5 ניתוחים בלי כרטיס אשראי.</p></li>
+        <li><h3>מחזיקים כמו מחבט</h3><p>החלק העליון של הטלפון הוא ראש המחבט, והמסך הוא המיתרים.</p></li>
+        <li><h3>מכים ורואים</h3><p>שומעים את החבטה, ומקבלים הילוך חוזר, ציון וטיפ.</p></li>
+      </ol>
+    </div>
+  </section>
 
-<!-- ============ REPLAY VIEW ============ -->
-<section id="v-replay" class="view" hidden style="flex-direction:column;gap:14px">
-  <button class="back" data-back>→ חזרה</button>
-  <div class="stage3d"><canvas id="c3d"></canvas></div>
-  <div style="text-align:center;color:var(--lime);font-weight:700" id="rp-info">—</div>
-  <div class="ctrl"><input type="range" id="rp-scrub" min="0" max="1000" value="0" aria-label="מיקום בהילוך"></div>
-  <div class="ctrl" style="justify-content:center;flex-wrap:wrap">
-    <button class="pill lime" id="rp-play">⏸</button>
-    <button class="pill" id="rp-peak">רגע השיא</button>
-    <div class="seg" id="rp-speed" style="flex:1;min-width:160px"><button data-v="0.25">¼×</button><button data-v="0.5">½×</button><button data-v="1">1×</button></div>
-  </div>
-  <p class="hint" style="font-size:13px">צהוב = המהירות הכי גבוהה של ראש המחבט, שם צריך להיות המגע. גרור כדי לסובב.</p>
-  <div id="rp-metrics" style="display:flex;flex-direction:column;gap:10px"></div>
-  <button class="big" id="again">מכה נוספת</button>
-</section>
+  <section class="band" id="price" style="padding-top:0">
+    <div class="inner">
+      <div class="sec-h"><h2>מחיר אחד. שנה שלמה.</h2><p>בלי מנוי חודשי ובלי חידוש אוטומטי.</p></div>
+      <div class="prices">
+        <div class="price">
+          <h3>חינם</h3>
+          <div class="amt">₪0</div>
+          <ul><li>5 ניתוחים עם הטלפון</li><li>משחק מול מסך</li><li>הילוך חוזר בתלת־ממד</li><li class="no">ניתוח וידאו</li></ul>
+          <a class="pillbtn ghost" href="/start" data-cta>התחל בחינם</a>
+        </div>
+        <div class="price pro">
+          <h3>PRO שנתי</h3>
+          <div class="amt">₪199<small> לשנה</small></div>
+          <ul><li>ניתוחים ללא הגבלה</li><li>ניתוח וידאו של כל הגוף</li><li>מצב אמיתי מול מסך</li><li>אימון רצוף והיסטוריית מכות</li><li>טניס ופאדל</li></ul>
+          <a class="pillbtn" href="/pro">לשדרוג ל־PRO</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- ============ TV CONNECT ============ -->
-<section id="v-tv" class="view" hidden style="flex-direction:column;gap:18px">
-  <button class="back" data-back>→ חזרה</button>
-  <h2 class="title">משחק מול מסך</h2>
-  <div class="card">
-    <ol class="steps">
-      <li><i>1</i><span>בטלוויזיה או בטאבלט, פתח את הדפדפן וכנס לכתובת:<br><b id="tv-url" style="color:var(--lime);direction:ltr;display:inline-block"></b></span></li>
-      <li><i>2</i><span>על המסך יופיע קוד של 4 ספרות. כתוב אותו כאן:</span></li>
-    </ol>
-  </div>
-  <input class="code" id="tv-code" inputmode="numeric" maxlength="4" placeholder="····" autocomplete="off" aria-label="קוד המסך">
-  <span class="label">על איזו חבטה מתאמנים?</span>
-  <div class="grid2" id="feed"></div>
-  <span class="label">איך המשחק מחשב את המכה?</span>
-  <div class="seg" id="pm1"><button data-v="easy">סלחני</button><button data-v="real">אמיתי</button></div>
-  <p class="hint" style="text-align:right;font-size:14px" data-modehint></p>
-  
-  <button class="big" id="tv-connect">התחבר למסך</button>
-  <div class="msg" id="tv-err" hidden></div>
-</section>
+  <section class="band" id="faq" style="padding-top:0">
+    <div class="inner">
+      <div class="sec-h"><h2>שאלות.</h2></div>
+      <div class="faq">
+        <details><summary>צריך מחבט או כדור?</summary><p>לא. מחזיקים את הטלפון כמו ידית של מחבט. צריך רק כשני מטרים פנויים סביבך.</p></details>
+        <details><summary>על איזה טלפון זה עובד?</summary><p>על אייפון ואנדרואיד, בדפדפן. אין צורך להוריד אפליקציה. באייפון תתבקש לאשר גישה לחיישני התנועה.</p></details>
+        <details><summary>איך מחברים לטלוויזיה?</summary><p>פותחים בטלוויזיה או בטאבלט את הכתובת smash/tv, סורקים את הקוד עם הטלפון, ומתחילים.</p></details>
+        <details><summary>זה מחליף מאמן?</summary><p>לא. smash מאמן את התנופה, התזמון והשחרור כשאין לך מגרש. הוא לא כלי רפואי ולא תחליף לאימון אמיתי.</p></details>
+        <details><summary>מה קורה אחרי 5 הניתוחים?</summary><p>אפשר לשדרג ל־PRO בתשלום אחד של ₪199 לשנה. אין חידוש אוטומטי.</p></details>
+      </div>
+    </div>
+  </section>
 
-<!-- ============ TV REMOTE (phone is the racket) ============ -->
-<section id="v-remote" class="view" hidden style="flex-direction:column;gap:18px">
-  <button class="back" data-back>→ יציאה</button>
-  <h2 class="title" id="rm-title">מחובר למסך</h2>
-  <div class="huge" id="rm-speed">—<small> קמ״ש</small></div>
-  <div class="stat"><div><b id="rm-hits">0</b><span>מכות</span></div><div><b id="rm-streak">0</b><span>רצף</span></div><div><b id="rm-best">0</b><span>שיא קמ״ש</span></div></div>
-  <span class="label">חבטה</span>
-  <div class="grid2" id="rm-feed"></div>
-  <span class="label">איך המשחק מחשב את המכה?</span>
-  <div class="seg" id="pm2"><button data-v="easy">סלחני</button><button data-v="real">אמיתי</button></div>
-  <p class="hint" style="text-align:right;font-size:14px" data-modehint></p>
-  
-  <p class="hint" id="rm-hint">עמוד מול המסך, תחזיק את הטלפון כמו מחבט ולחץ התחל. המסך בטלפון יינעל עד שתחזיק את הכפתור 2 שניות.</p>
-  <button class="big" id="rm-start">התחל</button>
-</section>
+  <section class="band" style="padding-top:0">
+    <div class="inner final">
+      <h2>המכה הבאה שלך<br>מתחילה בסלון.</h2>
+      <a class="pillbtn lg" href="/start" data-cta>התחל בחינם</a>
+    </div>
+  </section>
+</main>
 
-</div>
+<footer class="sfoot">
+  <div class="inner"><img src="logo.png" alt="smash"><span>© smash · אימון טניס ופאדל מכל מקום</span></div>
+</footer>
 
-<div class="lock" id="lock" hidden>
-  <div class="lock-in">
-    <span class="label" id="lk-mode"></span>
-    <div class="pulse" id="lk-pulse"></div>
-    <h2 id="lk-t"></h2>
-    <p id="lk-p"></p>
-    <div class="huge" id="lk-speed" hidden>—<small> קמ״ש</small></div>
-    <div class="stat" id="lk-stats" hidden><div><b id="lk-a">0</b><span id="lk-a-l">מכות</span></div><div><b id="lk-b">0</b><span id="lk-b-l">רצף</span></div><div><b id="lk-c">0</b><span>שיא קמ״ש</span></div></div>
-  </div>
-  <button class="hold" id="lk-hold"><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="lk-hold-t">החזק 2 שניות כדי לעצור</span></button>
-</div>
-
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script type="module" src="js/app.js"></script>
+<script type="module">
+import { account } from "./js/account.js";
+// returning user: buttons go straight to the app
+if (account.get()) for (const a of document.querySelectorAll("[data-cta]")) { a.href = "/app"; if (a.textContent.includes("התחל")) a.textContent = "להתאמן"; }
+// gauge ticks + swing waveform
+const t = document.getElementById("ticks"); let h = "";
+for (let i = 0; i < 60; i++) { const a = i / 60 * Math.PI * 2, r1 = 88, r2 = i % 5 ? 92 : 96; h += `<line x1="${100 + r1 * Math.cos(a)}" y1="${100 + r1 * Math.sin(a)}" x2="${100 + r2 * Math.cos(a)}" y2="${100 + r2 * Math.sin(a)}"/>`; }
+t.innerHTML = h;
+let d = ""; for (let x = 0; x <= 220; x += 2) { const y = 32 - 26 * Math.sin(x / 220 * Math.PI * 9) * Math.exp(-Math.pow((x - 120) / 80, 2)); d += (x ? "L" : "M") + x + " " + y.toFixed(1); }
+document.getElementById("wave").setAttribute("d", d);
+</script>
 </body>
 </html>

@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a0b08">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>סמש · ניתוח וידאו</title>
+<link rel="icon" href="icon-64.png" type="image/png">
+<title>smash · ניתוח וידאו</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
 <style>
 /* Layout: one-column phone app. Night court: near-black ground, optic-yellow ball lime as the single accent, chalk-white lines. */
 :root{
-  --bg:#0a0b08; --panel:#13150f; --line:#262a1d; --chalk:#eef2e2; --muted:#9aa18a;
-  --lime:#d4ff1e; --lime-ink:#141a00; --good:#5ee07a; --warn:#ffb02e; --bad:#ff5a4e;
-  --f-display:"Secular One","Assistant",system-ui,sans-serif;
-  --f-body:"Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --bg:#000; --panel:#13150f; --line:#262a1d; --chalk:#eef2e2; --muted:#9aa18a;
+  --lime:#dafa54; --lime-ink:#141a00; --good:#5ee07a; --warn:#ffb02e; --bad:#ff5a4e;
+  --f-display:"Rubik",system-ui,sans-serif;
+  --f-body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Rubik",ui-monospace,Menlo,monospace;
   color-scheme:dark;
 }
 html,body{background:var(--bg);color:var(--chalk)}
@@ -110,11 +110,11 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
 </head>
 <body>
 <div class="wrap">
-  <a href="./" style="color:var(--chalk);font-weight:700;text-decoration:none;padding-top:12px">→ חזרה</a>
+  <a href="/app" style="color:var(--chalk);font-weight:700;text-decoration:none;padding-top:12px">→ חזרה</a>
   <header>
     <div class="brand">
       <svg class="ball" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="var(--lime)"/><path d="M5 9c7 3 9 12 4 20M29 9c-7 3-9 12-4 20" stroke="var(--bg)" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
-      <div><h1>סמש</h1><small>ניתוח חבטה מהטלפון · טניס ופאדל</small></div>
+      <div><img src="logo.png" alt="smash" style="height:30px;width:auto;display:block"><small>ניתוח וידאו · טניס ופאדל</small></div>
     </div>
   </header>
 
@@ -593,5 +593,16 @@ $("up").addEventListener("change",onFile);
 S.data=demoData(); showResults(analyze(S.data)); renderHistory();
 </script>
 
+<script type="module">
+import { account, PLAN } from "./js/account.js";
+if (!account.get()) location.replace("/start?next=/analyze");
+else if (!account.isPro()) {
+  for (const id of ["cam", "up"]) { const i = document.getElementById(id); i.disabled = true; i.closest("label").style.opacity = .35; i.closest("label").style.pointerEvents = "none"; }
+  const card = document.createElement("div"); card.className = "lockcard";
+  card.style.cssText = "display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:20px;border:1px solid #3b4512;background:linear-gradient(160deg,#1a1f08,#0b0c08)";
+  card.innerHTML = `<h3 style="font-size:22px;margin:0">ניתוח וידאו זמין במנוי PRO</h3><p style="margin:0;color:#9a9f8a">הניתוחים החינמיים כוללים את האימון עם הטלפון. ניתוח הגוף מסרטון נפתח במנוי השנתי, ₪${PLAN.priceILS} לשנה.</p><a href="/pro" style="display:block;text-align:center;border-radius:999px;padding:14px;background:#dafa54;color:#0b0d02;font-weight:800;text-decoration:none">לפרטים על PRO</a>`;
+  document.querySelector(".cta").before(card);
+}
+</script>
 </body>
 </html>
