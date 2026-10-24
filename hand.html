@@ -39,7 +39,8 @@
     <h1 style="font-size:32px;line-height:1.1">משחק עם היד</h1>
     <p style="margin:0;color:var(--muted)">בלי מחבט ובלי טלפון ביד. עומדים מול המצלמה, חובטים באוויר, והמצלמה מזהה איזו יד חובטת ואיזו חבטה זו.</p>
     <span class="label">מצב</span>
-    <div class="seg" id="mode"><button data-v="free" aria-pressed="true">חופשי</button><button data-v="challenge" aria-pressed="false">אתגר</button></div>
+    <div class="seg" id="mode"><button data-v="balls" aria-pressed="true">כדורים</button><button data-v="free" aria-pressed="false">חופשי</button><button data-v="challenge" aria-pressed="false">אתגר</button></div>
+    <p class="note" id="mode-d">זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.</p>
     <div id="chal" style="display:none;flex-direction:column;gap:8px">
       <span class="label">אילו חבטות באתגר?</span>
       <div class="seg" id="which"><button data-v="all" aria-pressed="true">הכל</button><button data-v="fh" aria-pressed="false">פורהנד</button><button data-v="bh" aria-pressed="false">בקהנד</button><button data-v="sm" aria-pressed="false">סמש</button></div>
@@ -84,13 +85,13 @@ if (!account.require()) throw new Error("no account");
 const paint = () => { const t = $("trial"); if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
 paint();
 
-const S = { mode: "free", which: "all", cam: "user" };
+const S = { mode: "balls", which: "all", cam: "user" };
 for (const id of ["mode", "which", "cam"]) {
   $(id).addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     S[id] = b.dataset.v;
     for (const x of $(id).children) x.setAttribute("aria-pressed", String(x === b));
-    if (id === "mode") $("chal").style.display = S.mode === "challenge" ? "flex" : "none";
+    if (id === "mode") { $("chal").style.display = S.mode === "challenge" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
   });
 }
 const sound = new Sound();
@@ -131,8 +132,9 @@ $("start").onclick = async () => {
   show("v-live");
   try { wl = await navigator.wakeLock.request("screen"); } catch (e) {}
   counted = false; Object.assign(G, { all: 0, r: 0, l: 0, best: 0, score: 0, round: 0, target: null, phase: "idle" });
-  resetHands(); paintStats(); running = true; loop();
-  if (S.mode === "challenge") nextRound(1200); else say("חבוט!", 1200);
+  resetHands(); LAST = null; BODY = null; B.list = []; B.n = B.ret = B.streak = 0; B.r = B.l = 0; B.next = performance.now() + 1500;
+  paintStats(); running = true; loop(); render();
+  if (S.mode === "challenge") nextRound(1200); else if (S.mode === "free") say("חבוט!", 1200); else say("היכון!", 1200);
 };
 function reset() { $("start").disabled = false; $("start").textContent = "הפעל מצלמה"; }
 function stopCam() { running = false; clearTimeout(G.timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; try { wl && wl.release(); } catch (e) {} }
@@ -161,6 +163,7 @@ function nextRound(delay = 1500) {
 
 /* ---------- swing detection ---------- */
 function onSwing(wrist, peak, dx, dy, startAboveShoulder, u) {
+  if (S.mode === "balls") return;
   const right = wrist === RW;
   const lateral = dx * u[0] + dy * u[1]; // + = toward the player's left
   const across = right ? lateral > 0 : lateral < 0;
@@ -196,7 +199,7 @@ async function step() {
   if (!running) return;
   const P = i => ({ x: k[i].x * 192, y: k[i].y * 192, s: k[i].s });
   const ls = P(LS), rs = P(RS);
-  draw(k, ox, oy, sc, W, Hh);
+  LAST = { k, ox, oy, sc, W, Hh }; updateWrists(now);
   if (ls.s < 0.25 || rs.s < 0.25) return;
   const sw = Math.hypot(ls.x - rs.x, ls.y - rs.y); if (sw < 6) return;
   const u = [(ls.x - rs.x) / sw, (ls.y - rs.y) / sw];
@@ -230,30 +233,123 @@ async function step() {
   }
 }
 
-/* ---------- overlay ---------- */
-let flashHand = null;
-function draw(k, ox, oy, sc, W, Hh) {
-  const c = $("ov"), st = $("stage"); if (c.width !== st.clientWidth * 2) { c.width = st.clientWidth * 2; c.height = st.clientHeight * 2; }
-  const g = c.getContext("2d"); g.clearRect(0, 0, c.width, c.height);
-  // map video (object-fit:cover) to canvas
-  const cw = c.width, ch = c.height, s = Math.max(cw / W, ch / Hh), dx = (cw - W * s) / 2, dy = (ch - Hh * s) / 2;
-  const M = i => ({ x: ((k[i].x * 192 - ox) / sc) * s + dx, y: ((k[i].y * 192 - oy) / sc) * s + dy, ok: k[i].s > 0.25 });
-  const now = performance.now();
-  g.lineWidth = 5; g.lineCap = "round";
-  for (const [a, b, w] of [[LS, LE], [LE, LW], [RS, RE], [RE, RW]]) {
-    const A = M(a), B = M(b); if (!A.ok || !B.ok) continue;
-    g.strokeStyle = "rgba(238,242,226,.55)"; g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(B.x, B.y); g.stroke();
-  }
+/* ---------- overlay + ball game (runs every frame, independent of the pose speed) ---------- */
+let LAST = null, BODY = null, flashHand = null;
+const WR = {};
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function geo() {
+  const c = $("ov"), st = $("stage");
+  if (c.width !== st.clientWidth * 2) { c.width = st.clientWidth * 2; c.height = st.clientHeight * 2; }
+  if (!LAST) return null;
+  const { W, Hh } = LAST, cw = c.width, ch = c.height, s = Math.max(cw / W, ch / Hh);
+  return { c, cw, ch, s, dx: (cw - W * s) / 2, dy: (ch - Hh * s) / 2 };
+}
+function scr(i, g) { const { k, ox, oy, sc } = LAST; return { x: ((k[i].x * 192 - ox) / sc) * g.s + g.dx, y: ((k[i].y * 192 - oy) / sc) * g.s + g.dy, ok: k[i].s > 0.25 }; }
+function updateWrists(now) {
+  const g = geo(); if (!g) return;
   for (const id of [LW, RW]) {
-    const p = M(id); if (!p.ok) continue;
-    const hot = flashHand && flashHand.id === id && now < flashHand.until;
-    g.fillStyle = hot ? "#dafa54" : "rgba(218,250,84,.55)";
-    g.beginPath(); g.arc(p.x, p.y, hot ? 26 : 13, 0, 7); g.fill();
-    if (hot) {
-      g.save(); const m = $("stage").classList.contains("mirror"); if (m) { g.translate(p.x, p.y - 46); g.scale(-1, 1); } else g.translate(p.x, p.y - 46);
-      g.fillStyle = "#dafa54"; g.font = "800 30px Rubik,sans-serif"; g.textAlign = "center"; g.fillText(id === RW ? "ימין" : "שמאל", 0, 0); g.restore();
+    const p = scr(id, g), w = WR[id] || (WR[id] = {});
+    if (!p.ok) { w.ok = false; continue; }
+    if (w.ok) {
+      p.x = w.x * 0.25 + p.x * 0.75; p.y = w.y * 0.25 + p.y * 0.75;
+      const dt = Math.max(0.016, (now - w.t) / 1000);
+      w.vx = w.vx * 0.3 + ((p.x - w.x) / dt) * 0.7; w.vy = w.vy * 0.3 + ((p.y - w.y) / dt) * 0.7;
+      w.px = w.x; w.py = w.y;
+    } else { w.vx = w.vy = 0; w.px = p.x; w.py = p.y; }
+    w.x = p.x; w.y = p.y; w.t = now; w.ok = true;
+  }
+  const a = scr(LS, g), b = scr(RS, g);
+  if (a.ok && b.ok) BODY = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, sw: Math.hypot(a.x - b.x, a.y - b.y) };
+}
+
+const B = { list: [], next: 0, n: 0, ret: 0, streak: 0, r: 0, l: 0, rings: [] };
+const netY = H => H * 0.3;
+function launch(g) {
+  const W = g.cw, H = g.ch, body = BODY || { x: W / 2, y: H * 0.6, sw: W * 0.25 };
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const tx = clamp(body.x + side * body.sw * (0.9 + Math.random() * 0.7), W * 0.12, W * 0.88);
+  const ty = clamp(body.y + body.sw * (0.1 + Math.random() * 0.6), H * 0.45, H * 0.85);
+  const x0 = W * (0.3 + Math.random() * 0.4), y0 = netY(H) - H * 0.02;
+  const dur = 1.7 - Math.min(0.6, B.n * 0.04);
+  B.list.push({ st: "in", t0: performance.now(), dur: dur * 1000, x0, y0, tx, ty, r0: W * 0.018, r1: W * 0.055, x: x0, y: y0, r: W * 0.018 });
+  B.n++; sound.tick();
+  if (!counted) { account.use(); counted = true; paint(); }
+  $("t-left").textContent = "כדור " + B.n;
+}
+function hitBall(b, id, speed, w, g, now) {
+  const W = g.cw, H = g.ch, power = clamp(Math.round(speed / 14 * 100), 5, 100);
+  const lx = b.x + clamp(w.vx * 0.25, -W * 0.4, W * 0.4);
+  const out = lx < W * 0.04 || lx > W * 0.96;
+  b.st = "back"; b.t1 = now; b.dur = clamp(1.1 - power / 100 * 0.5, 0.55, 1.1) * 1000;
+  b.fx = b.x; b.fy = b.y; b.fr = b.r; b.lx = clamp(lx, -W * 0.05, W * 1.05); b.ly = netY(H) - H * 0.04; b.arc = H * (0.1 + 0.1 * (1 - power / 100)); b.out = out; b.hand = id; b.power = power;
+  sound.hit("tennis", power / 100); B.rings.push({ x: b.x, y: b.y, t: now });
+  flashHand = { id, until: now + 400 };
+  $("last").textContent = (id === RW ? "יד ימין" : "יד שמאל") + " · עוצמה " + power;
+}
+function gameStep(g, now) {
+  if (S.mode !== "balls") return;
+  if (!B.list.length && now >= B.next) launch(g);
+  const sw = BODY ? BODY.sw : g.cw * 0.25;
+  for (const b of B.list) {
+    if (b.st === "in") {
+      const u = (now - b.t0) / b.dur, e = Math.pow(Math.max(0, u), 1.6);
+      b.x = b.x0 + (b.tx - b.x0) * e; b.y = b.y0 + (b.ty - b.y0) * e - Math.sin(Math.PI * Math.min(1, e)) * g.ch * 0.05; b.r = Math.min(b.r1 * 1.25, b.r0 + (b.r1 - b.r0) * e);
+      if (u > 0.3) for (const id of [LW, RW]) {
+        const w = WR[id]; if (!w || !w.ok || b.st !== "in") continue;
+        const ext = Math.min(0.08, (now - w.t) / 1000 + 0.04), ex = w.x + w.vx * ext, ey = w.y + w.vy * ext;
+        const sx = ex - w.px, sy = ey - w.py, L2 = sx * sx + sy * sy || 1;
+        const t = clamp(((b.x - w.px) * sx + (b.y - w.py) * sy) / L2, 0, 1);
+        const d = Math.hypot(b.x - (w.px + sx * t), b.y - (w.py + sy * t));
+        const speed = Math.hypot(w.vx, w.vy) / sw;
+        if (d < b.r + g.cw * 0.055 && speed > 2.2) hitBall(b, id, speed, w, g, now);
+      }
+      if (b.st === "in" && u > 1.3) { b.st = "gone"; B.streak = 0; say("פספוס", 700); sound.clip("bounce", 0.5); }
+    } else if (b.st === "back") {
+      const u = clamp((now - b.t1) / b.dur, 0, 1);
+      b.x = b.fx + (b.lx - b.fx) * u; b.y = b.fy + (b.ly - b.fy) * u - Math.sin(Math.PI * u) * b.arc; b.r = b.fr + (b.r0 * 0.8 - b.fr) * u;
+      if (u >= 1) {
+        b.st = "gone";
+        if (b.out) { B.streak = 0; say("החוצה", 800); sound.clip("bounce", 0.6); }
+        else { B.ret++; B.streak++; b.hand === RW ? B.r++ : B.l++; G.best = Math.max(G.best, b.power); say(B.streak > 2 ? "רצף " + B.streak + "!" : "מעל הרשת!", 800); }
+        G.all = B.ret; G.r = B.r; G.l = B.l; paintStats(); $("t-score").textContent = "רצף: " + B.streak;
+      }
     }
   }
+  if (B.list.length && B.list.every(b => b.st === "gone")) { B.list = []; B.next = now + 700 + Math.random() * 600; }
+}
+function render() {
+  if (!running) return;
+  requestAnimationFrame(render);
+  const g = geo(); if (!g) return;
+  const now = performance.now(), k = LAST.k, ctx = g.c.getContext("2d");
+  gameStep(g, now);
+  ctx.clearRect(0, 0, g.cw, g.ch);
+  if (S.mode === "balls") {
+    const ny = netY(g.ch);
+    ctx.strokeStyle = "rgba(238,242,226,.8)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, ny); ctx.lineTo(g.cw, ny); ctx.stroke();
+    ctx.strokeStyle = "rgba(238,242,226,.28)"; ctx.lineWidth = 2; ctx.beginPath();
+    for (let x = 0; x <= g.cw; x += 26) { ctx.moveTo(x, ny); ctx.lineTo(x, ny + g.ch * 0.035); }
+    ctx.moveTo(0, ny + g.ch * 0.035); ctx.lineTo(g.cw, ny + g.ch * 0.035); ctx.stroke();
+  }
+  const M = i => scr(i, g);
+  ctx.lineWidth = 5; ctx.lineCap = "round";
+  for (const [a, b] of [[LS, LE], [LE, LW], [RS, RE], [RE, RW]]) {
+    const A = M(a), Bp = M(b); if (!A.ok || !Bp.ok) continue;
+    ctx.strokeStyle = "rgba(238,242,226,.55)"; ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(Bp.x, Bp.y); ctx.stroke();
+  }
+  for (const id of [LW, RW]) {
+    const w = WR[id]; if (!w || !w.ok) continue;
+    const hot = flashHand && flashHand.id === id && now < flashHand.until;
+    ctx.fillStyle = hot ? "#dafa54" : "rgba(218,250,84,.6)";
+    ctx.beginPath(); ctx.arc(w.x, w.y, hot ? g.cw * 0.05 : g.cw * 0.03, 0, 7); ctx.fill();
+  }
+  for (const b of B.list) if (b.st !== "gone") {
+    ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(b.x, b.y + b.r * 1.6, b.r, b.r * 0.35, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#dafa54"; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+    ctx.strokeStyle = "rgba(20,26,0,.55)"; ctx.lineWidth = Math.max(1.5, b.r * 0.12); ctx.beginPath(); ctx.arc(b.x - b.r * 1.05, b.y, b.r * 0.9, -0.9, 0.9); ctx.arc(b.x + b.r * 1.05, b.y, b.r * 0.9, Math.PI - 0.9, Math.PI + 0.9); ctx.stroke();
+  }
+  B.rings = B.rings.filter(r => now - r.t < 350);
+  for (const r of B.rings) { const u = (now - r.t) / 350; ctx.strokeStyle = "rgba(218,250,84," + (1 - u) + ")"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(r.x, r.y, g.cw * (0.04 + 0.1 * u), 0, 7); ctx.stroke(); }
 }
 </script>
 </body>
