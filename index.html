@@ -160,6 +160,7 @@
         <details><summary>צריך מחבט או כדור?</summary><p>לא. מחזיקים את הטלפון כמו ידית של מחבט. צריך רק כשני מטרים פנויים סביבך.</p></details>
         <details><summary>על איזה טלפון זה עובד?</summary><p>על אייפון ואנדרואיד, בדפדפן. אין צורך להוריד אפליקציה. באייפון תתבקש לאשר גישה לחיישני התנועה.</p></details>
         <details><summary>איך מחברים לטלוויזיה?</summary><p>פותחים בטלוויזיה או בטאבלט את הכתובת smash/tv, סורקים את הקוד עם הטלפון, ומתחילים.</p></details>
+        <details><summary>זה בטוח?</summary><p>כן, כשמתאמנים נכון: שני מטרים פנויים סביבך, אחיזה חזקה בטלפון (מומלץ כיסוי עם אחיזה או רצועת יד), ובלי אנשים או חפצים שבירים בקרבת מקום. האימון על אחריותך. <a href="/terms#safety" style="color:var(--lime)">כל הפרטים</a>.</p></details>
         <details><summary>זה מחליף מאמן?</summary><p>לא. smash מאמן את התנופה, התזמון והשחרור כשאין לך מגרש. הוא לא כלי רפואי ולא תחליף לאימון אמיתי.</p></details>
         <details><summary>מה קורה אחרי 5 הניתוחים?</summary><p>אפשר לשדרג ל־PRO בתשלום אחד של ₪199 לשנה. אין חידוש אוטומטי.</p></details>
       </div>
@@ -175,7 +176,7 @@
 </main>
 
 <footer class="sfoot">
-  <div class="inner"><img src="logo.png" alt="smash"><span>© smash · אימון טניס ופאדל מכל מקום</span></div>
+  <div class="inner"><img src="logo.png" alt="smash"><nav class="lfoot" aria-label="מידע משפטי"><a href="/terms">תנאי שימוש</a><a href="/terms#safety">בטיחות והסרת אחריות</a><a href="/privacy">פרטיות</a><a href="/accessibility">הצהרת נגישות</a></nav><span>© smash · אימון טניס ופאדל מכל מקום</span></div>
 </footer>
 
 <script type="module">
@@ -189,5 +190,6 @@ t.innerHTML = h;
 let d = ""; for (let x = 0; x <= 220; x += 2) { const y = 32 - 26 * Math.sin(x / 220 * Math.PI * 9) * Math.exp(-Math.pow((x - 120) / 80, 2)); d += (x ? "L" : "M") + x + " " + y.toFixed(1); }
 document.getElementById("wave").setAttribute("d", d);
 </script>
+<script type="module" src="js/a11y.js"></script>
 </body>
 </html>

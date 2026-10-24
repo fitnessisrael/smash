@@ -15,10 +15,12 @@ function write(a) { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch 
 
 export const account = {
   get: read,
-  create({ name, email, sport }) {
+  create({ name, email, sport, marketing = false, termsAt = Date.now() }) {
     const prev = read();
-    return write({ name: name.trim(), email: email.trim().toLowerCase(), sport: sport || "tennis", created: Date.now(), used: prev ? prev.used : 0, proUntil: prev ? prev.proUntil : 0 });
+    return write({ name: name.trim(), email: email.trim().toLowerCase(), sport: sport || "tennis", marketing, termsAt, created: prev ? prev.created : Date.now(), used: prev ? prev.used : 0, proUntil: prev ? prev.proUntil : 0 });
   },
+  // Stage 1: called when the payment page sends the buyer back. Stage 2 will confirm the payment on a server first.
+  activatePro() { const a = read(); if (!a) return; a.proUntil = Math.max(a.proUntil || 0, Date.now()) + 365 * 864e5; a.paidAt = Date.now(); write(a); },
   signOut() { try { localStorage.removeItem(KEY); } catch (e) {} },
   isPro() { const a = read(); return !!(a && a.proUntil && a.proUntil > Date.now()); },
   left() { const a = read(); if (!a) return 0; return Math.max(0, PLAN.freeTries - (a.used || 0)); },

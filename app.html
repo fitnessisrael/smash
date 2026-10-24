@@ -51,7 +51,7 @@
     <span class="label">הילוכים חוזרים אחרונים</span>
     <div class="list" id="replays"></div>
   </div>
-  <footer>smash · אימון חבטות מכל מקום. המהירות היא הערכה לפי סיבוב הטלפון.</footer>
+  <footer>smash · המהירות היא הערכה לפי סיבוב הטלפון.<br><a href="/terms" style="color:inherit">תנאי שימוש</a> · <a href="/terms#safety" style="color:inherit">בטיחות</a> · <a href="/privacy" style="color:inherit">פרטיות</a> · <a href="/accessibility" style="color:inherit">נגישות</a></footer>
 </section>
 
 <!-- ============ REPLAY SETUP ============ -->
@@ -130,6 +130,20 @@
 
 </div>
 
+<div class="count" id="safety" hidden role="dialog" aria-modal="true" aria-labelledby="sf-t">
+  <div class="card" style="max-width:420px;text-align:right;display:flex;flex-direction:column;gap:14px">
+    <h2 id="sf-t" style="font-size:30px">לפני שמכים</h2>
+    <ul class="steps" style="gap:10px">
+      <li><i>1</i><span>שני מטרים פנויים סביבך. בלי אנשים, ילדים, בעלי חיים או חפצים שבירים.</span></li>
+      <li><i>2</i><span>אחוז חזק בטלפון. מומלץ כיסוי עם אחיזה או רצועת יד.</span></li>
+      <li><i>3</i><span>התחל לאט. אם כואב, עצור.</span></li>
+    </ul>
+    <p class="hint" style="text-align:right">האימון על אחריותך. <a href="/terms#safety" style="color:var(--lime)">בטיחות והסרת אחריות</a></p>
+    <button class="big" id="sf-ok">הבנתי, מתחילים</button>
+    <button class="big ghost" id="sf-no">לא עכשיו</button>
+  </div>
+</div>
+
 <div class="lock" id="lock" hidden>
   <div class="lock-in">
     <span class="label" id="lk-mode"></span>
@@ -144,5 +158,6 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="module" src="js/app.js"></script>
+<script type="module" src="js/a11y.js"></script>
 </body>
 </html>

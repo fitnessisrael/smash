@@ -23,6 +23,15 @@ function paintTrial() {
 paintTrial();
 if (me && me.name) $("hello").textContent = `${me.name.split(" ")[0]}, הטלפון שלך הוא המחבט.`;
 // gate: every analysis (one swing, a drill, a screen game) uses one free try
+// one-time safety screen before the first swing
+function safety() {
+  if (store.get("safetyOk", false)) return Promise.resolve(true);
+  $("safety").hidden = false; $("sf-ok").focus();
+  return new Promise(res => {
+    $("sf-ok").onclick = () => { store.set("safetyOk", true); $("safety").hidden = true; ensureSensors(); res(true); };
+    $("sf-no").onclick = () => { $("safety").hidden = true; res(false); };
+  });
+}
 function gate() { if (account.canUse()) return true; location.href = "/pro?from=limit"; return false; }
 const sound = new Sound();
 const racket = new Racket();
@@ -84,11 +93,13 @@ $("replays").addEventListener("click", e => {
   const r = store.get("replays", [])[+b.dataset.i]; if (r) openReplay(r);
 });
 
-async function ensureSensors() {
+let sensorsP = null;
+function ensureSensors() { // must start inside a tap (iPhone permission); shared by every caller
   sound.unlock();
-  if (sensorsOn) return true;
-  if (!Racket.supported()) return false;
-  try { await racket.start(); sensorsOn = true; return true; } catch (e) { return false; }
+  if (sensorsOn) return Promise.resolve(true);
+  if (!Racket.supported()) return Promise.resolve(false);
+  if (!sensorsP) sensorsP = racket.start().then(() => { sensorsOn = true; sound.wake(); return true; }, () => { sensorsP = null; return false; });
+  return sensorsP;
 }
 
 /* ---------------- play lock ---------------- */
@@ -106,6 +117,8 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 $("start-replay").onclick = async () => {
   $("setup-msg").hidden = true;
   if (!gate()) return;
+  if (store.get("safetyOk", false)) ensureSensors(); // start the permission inside this tap
+  if (!(await safety())) return;
   const ok = await ensureSensors();
   if (!ok) { // computer / no sensors: show a demo replay
     openReplay({ d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: demoSwing(S.stroke), demo: true });
@@ -331,6 +344,8 @@ function send(m) { try { conn && conn.open && conn.send(m); } catch (e) {} }
 let sessionCounted = false;
 $("rm-start").onclick = async () => {
   if (!sessionCounted && !gate()) return;
+  if (store.get("safetyOk", false)) ensureSensors();
+  if (!(await safety())) return;
   const ok = await ensureSensors();
   if (!ok) { $("rm-hint").textContent = "לא קיבלנו גישה לחיישני התנועה. פתח את האתר בטלפון (ספארי או כרום) ואשר גישה לתנועה."; return; }
   let stopped = false;

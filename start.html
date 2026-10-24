@@ -22,10 +22,11 @@
     <div class="field"><label for="email">אימייל</label><input id="email" type="email" inputmode="email" autocomplete="email" dir="ltr" required placeholder="you@email.com"></div>
     <span class="label">מה אתה משחק?</span>
     <div class="seg" id="sport"><button type="button" data-v="tennis" aria-pressed="true">טניס</button><button type="button" data-v="padel" aria-pressed="false">פאדל</button></div>
-    <label class="check"><input type="checkbox" id="ok"> <span>אני מאשר שהאימון על אחריותי, ושאני משאיר מקום פנוי סביבי כשאני מכה עם הטלפון.</span></label>
+    <label class="check"><input type="checkbox" id="ok"> <span>קראתי ואני מסכים ל<a href="/terms" target="_blank" style="color:var(--lime)">תנאי השימוש</a>, כולל <a href="/terms#safety" target="_blank" style="color:var(--lime)">הסרת האחריות</a>, ול<a href="/privacy" target="_blank" style="color:var(--lime)">מדיניות הפרטיות</a>. האימון על אחריותי.</span></label>
     <div class="err" id="err" role="alert"></div>
     <button class="big" type="submit">יאללה, מתחילים</button>
     <p class="hint" style="font-size:13px">בשלב זה החשבון נשמר בטלפון הזה.</p>
+    <label class="check"><input type="checkbox" id="mkt"> <span>אשמח לקבל טיפים ועדכונים באימייל (לא חובה).</span></label>
   </form>
 </div>
 <script type="module">
@@ -44,9 +45,10 @@ document.getElementById("f").addEventListener("submit", e => {
   if (!name) return (err.textContent = "כתוב את השם שלך.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return (err.textContent = "האימייל לא נראה תקין. בדוק אותו שוב.");
   if (!document.getElementById("ok").checked) return (err.textContent = "סמן את התיבה כדי להמשיך.");
-  account.create({ name, email, sport }); store.set("sport", sport);
+  account.create({ name, email, sport, marketing: document.getElementById("mkt").checked, termsAt: Date.now() }); store.set("sport", sport);
   location.replace(safeNext);
 });
 </script>
+<script type="module" src="js/a11y.js"></script>
 </body>
 </html>

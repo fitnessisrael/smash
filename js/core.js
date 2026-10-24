@@ -137,28 +137,42 @@ export class SwingDetector {
 
 /* ---------- sound (synthesised, no files) ---------- */
 export class Sound {
-  constructor() { this.ctx = null; }
-  // iPhone silent switch mutes Web Audio unless a media element is playing.
-  // So we keep a silent looping <audio> running and ask for the "playback" audio session.
+  // Two paths: Web Audio (lowest delay) and pre-rendered clips in <audio> elements.
+  // iPhone can pause Web Audio after the motion-permission popup or in silent mode; the clips keep working.
+  constructor() { this.ctx = null; this.clips = null; }
   unlock() {
     try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
     if (!this.media) {
       const a = document.createElement("audio");
-      a.src = silentWavUrl(); a.loop = true; a.setAttribute("playsinline", ""); a.preload = "auto";
-      a.setAttribute("x-webkit-airplay", "deny"); document.body.appendChild(a); a.hidden = true;
-      this.media = a;
+      a.src = silentWavUrl(); a.loop = true; a.setAttribute("playsinline", ""); a.preload = "auto"; a.hidden = true;
+      document.body.appendChild(a); this.media = a;
     }
     this.media.play().catch(() => {});
     if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
-    if (this.ctx && this.ctx.state !== "running") this.ctx.resume().catch(() => {});
-    if (this.ctx) { const o = this.ctx.createOscillator(), g = this.ctx.createGain(); g.gain.value = 0; o.connect(g).connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime + 0.01); }
+    this.wake();
+    if (!this.clips) this.clips = makeClips();
+    // prime every clip inside this tap, so it may play later without a tap
+    for (const list of Object.values(this.clips)) for (const el of list) {
+      el.muted = true; const p = el.play();
+      if (p && p.then) p.then(() => { el.pause(); el.currentTime = 0; el.muted = false; }).catch(() => { el.muted = false; });
+      else { el.pause(); el.muted = false; }
+    }
   }
-  // call when coming back to the page (e.g. after the screen turned off)
-  wake() { if (this.media && this.media.paused) this.media.play().catch(() => {}); if (this.ctx && this.ctx.state !== "running") this.ctx.resume().catch(() => {}); }
+  wake() {
+    if (this.media && this.media.paused) this.media.play().catch(() => {});
+    if (this.ctx && this.ctx.state !== "running") this.ctx.resume().catch(() => {});
+  }
+  live() { this.wake(); return this.ctx && this.ctx.state === "running"; }
+  clip(name, vol = 1) {
+    if (!this.clips) return;
+    const list = this.clips[name]; if (!list) return;
+    const el = list.find(e => e.paused || e.ended) || list[0];
+    try { el.volume = Math.max(0.05, Math.min(1, vol)); el.currentTime = 0; el.play().catch(() => {}); } catch (e) {}
+  }
   hit(sport = "tennis", power = 1) {
-    const c = this.ctx; if (!c) return; const t = c.currentTime;
     const p = Math.max(0.35, Math.min(1, power));
-    // string "pock": filtered noise burst + short body tone
+    if (!this.live()) return this.clip(sport === "padel" ? "hitP" : "hitT", p);
+    const c = this.ctx, t = c.currentTime;
     const len = 0.09, buf = c.createBuffer(1, Math.floor(c.sampleRate * len), c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 6);
     const n = c.createBufferSource(); n.buffer = buf;
@@ -171,18 +185,43 @@ export class Sound {
     o.connect(og).connect(c.destination); o.start(t); o.stop(t + 0.12);
   }
   bounce() {
-    const c = this.ctx; if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    if (!this.live()) return this.clip("bounce", 0.8);
+    const c = this.ctx, t = c.currentTime, o = c.createOscillator(), g = c.createGain();
     o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.06);
     g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
     o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.1);
   }
-  tick(high = false) {
-    const c = this.ctx; if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
-    o.type = high ? "sine" : "square"; o.frequency.value = high ? 1320 : 900;
-    g.gain.setValueAtTime(high ? 0.5 : 0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + (high ? 0.5 : 0.05));
-    o.connect(g).connect(c.destination); o.start(t); o.stop(t + (high ? 0.55 : 0.06));
-  }
+  // count-in sounds always use the clips: they are the ones that must never be silent
+  tick(high = false) { this.wake(); this.clip(high ? "ding" : "tick", 1); }
   buzz() { if (navigator.vibrate) try { navigator.vibrate(25); } catch (e) {} }
+}
+
+// pre-rendered sound clips (16-bit WAV in memory)
+function wavUrl(samples, sr) {
+  const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 32767, true);
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+function synth(sec, fn, sr = 22050) { const n = Math.floor(sec * sr), a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = fn(i / sr, i / n); return wavUrl(a, sr); }
+function makeClips() {
+  const sq = (f, t) => (Math.sin(2 * Math.PI * f * t) > 0 ? 1 : -1);
+  const hit = (body, band) => synth(0.13, (t, u) => {
+    const noise = (Math.random() * 2 - 1) * Math.pow(Math.max(0, 1 - t / 0.09), 6) * (0.6 + 0.4 * Math.sin(2 * Math.PI * band * t));
+    const f = body * Math.pow(160 / body, Math.min(1, t / 0.08));
+    return 0.75 * noise + 0.6 * Math.sin(2 * Math.PI * f * t) * Math.exp(-t * 40);
+  });
+  const urls = {
+    tick: synth(0.06, (t) => 0.35 * sq(900, t) * Math.exp(-t * 70)),
+    ding: synth(0.6, (t) => 0.8 * Math.sin(2 * Math.PI * 1320 * t) * Math.exp(-t * 6) + 0.2 * Math.sin(2 * Math.PI * 2640 * t) * Math.exp(-t * 9)),
+    hitT: hit(520, 2300), hitP: hit(380, 1500),
+    bounce: synth(0.1, (t) => 0.7 * Math.sin(2 * Math.PI * (220 - 1300 * t) * t) * Math.exp(-t * 45)),
+  };
+  const out = {};
+  for (const [k, u] of Object.entries(urls)) out[k] = [0, 1, 2].map(() => { const a = new Audio(u); a.preload = "auto"; a.setAttribute("playsinline", ""); return a; });
+  return out;
 }
 
 function silentWavUrl() {
