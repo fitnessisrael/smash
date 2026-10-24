@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0b08">
+<title>סמש</title>
+<meta name="description" content="הטלפון הוא המחבט: מכים, שומעים את החבטה, ורואים הילוך חוזר. טניס ופאדל.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ HOME ============ -->
+<section id="v-home" class="view" style="display:flex;flex-direction:column;gap:20px">
+  <div class="top">
+    <div class="brand">
+      <svg class="ball" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="#d4ff1e"/><path d="M5 9c7 3 9 12 4 20M29 9c-7 3-9 12-4 20" stroke="#0a0b08" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+      <div><h1>סמש</h1><small>הטלפון הוא המחבט</small></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span class="label">מה משחקים?</span>
+    <div class="seg" id="sport"><button data-v="tennis">טניס</button><button data-v="padel">פאדל</button></div>
+    <span class="label">יד חובטת</span>
+    <div class="seg" id="hand"><button data-v="1">ימין</button><button data-v="-1">שמאל</button></div>
+  </div>
+
+  <button class="mode hero" id="go-tv">
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="7" width="34" height="21" rx="3"/><path d="M14 34h12M20 28v6"/><circle cx="25" cy="17" r="3" fill="currentColor"/></svg>
+    <div><b>משחק מול מסך</b><span>טלוויזיה או טאבלט מראים מגרש וכדור. אתה מכה עם הטלפון.</span></div>
+  </button>
+  <button class="mode" id="go-replay">
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="12" y="3" width="16" height="34" rx="3"/><path d="M6 14c-3 4-3 8 0 12M34 14c3 4 3 8 0 12"/></svg>
+    <div><b>טלפון בלבד</b><span>מכה אחת, ואז הילוך חוזר של התנועה בתלת־ממד.</span></div>
+  </button>
+  <a class="mode" href="analyze.html" style="text-decoration:none">
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="10" width="24" height="20" rx="3"/><path d="M27 17l10-5v16l-10-5"/></svg>
+    <div><b>ניתוח וידאו</b><span>מצלמים את עצמך מהצד ומקבלים ניתוח של כל הגוף.</span></div>
+  </a>
+
+  <div id="replays-wrap" hidden>
+    <span class="label">הילוכים חוזרים אחרונים</span>
+    <div class="list" id="replays"></div>
+  </div>
+  <footer>סמש · אימון חבטות מכל מקום. המהירות היא הערכה לפי סיבוב הטלפון.</footer>
+</section>
+
+<!-- ============ REPLAY SETUP ============ -->
+<section id="v-setup" class="view" hidden style="flex-direction:column;gap:18px">
+  <button class="back" data-back>→ חזרה</button>
+  <h2 class="title">טלפון בלבד</h2>
+  <div class="grid2" id="strokes"></div>
+  <div class="card">
+    <ol class="steps">
+      <li><i>1</i><span>תחזיק את הטלפון כמו ידית של מחבט. <b>החלק העליון של הטלפון = ראש המחבט. המסך = המיתרים.</b></span></li>
+      <li><i>2</i><span>לחץ "יאללה" ועמוד בעמדת מוכנות. תשמע שני טיקים ואז צלצול.</span></li>
+      <li><i>3</i><span>עשה מכה אחת. ההילוך החוזר נפתח לבד.</span></li>
+    </ol>
+  </div>
+  <p class="hint">תחזיק חזק ותשאיר מקום פנוי סביבך.</p>
+  <button class="big" id="start-replay">יאללה</button>
+</section>
+
+<!-- ============ REPLAY VIEW ============ -->
+<section id="v-replay" class="view" hidden style="flex-direction:column;gap:14px">
+  <button class="back" data-back>→ חזרה</button>
+  <div class="stage3d"><canvas id="c3d"></canvas></div>
+  <div style="text-align:center;color:var(--lime);font-weight:700" id="rp-info">—</div>
+  <div class="ctrl"><input type="range" id="rp-scrub" min="0" max="1000" value="0" aria-label="מיקום בהילוך"></div>
+  <div class="ctrl" style="justify-content:center;flex-wrap:wrap">
+    <button class="pill lime" id="rp-play">⏸</button>
+    <button class="pill" id="rp-peak">רגע השיא</button>
+    <div class="seg" id="rp-speed" style="flex:1;min-width:160px"><button data-v="0.25">¼×</button><button data-v="0.5">½×</button><button data-v="1">1×</button></div>
+  </div>
+  <p class="hint" style="font-size:13px">צהוב = המהירות הכי גבוהה של ראש המחבט, שם צריך להיות המגע. גרור כדי לסובב.</p>
+  <div id="rp-metrics" style="display:flex;flex-direction:column;gap:10px"></div>
+  <button class="big" id="again">מכה נוספת</button>
+</section>
+
+<!-- ============ TV CONNECT ============ -->
+<section id="v-tv" class="view" hidden style="flex-direction:column;gap:18px">
+  <button class="back" data-back>→ חזרה</button>
+  <h2 class="title">משחק מול מסך</h2>
+  <div class="card">
+    <ol class="steps">
+      <li><i>1</i><span>בטלוויזיה או בטאבלט, פתח את הדפדפן וכנס לכתובת:<br><b id="tv-url" style="color:var(--lime);direction:ltr;display:inline-block"></b></span></li>
+      <li><i>2</i><span>על המסך יופיע קוד של 4 ספרות. כתוב אותו כאן:</span></li>
+    </ol>
+  </div>
+  <input class="code" id="tv-code" inputmode="numeric" maxlength="4" placeholder="····" autocomplete="off" aria-label="קוד המסך">
+  <span class="label">איזה כדורים לקבל?</span>
+  <div class="seg" id="feed"><button data-v="mix">מעורב</button><button data-v="fh">פורהנד</button><button data-v="bh">בקהנד</button></div>
+  <button class="big" id="tv-connect">התחבר למסך</button>
+  <div class="msg" id="tv-err" hidden></div>
+</section>
+
+<!-- ============ TV REMOTE (phone is the racket) ============ -->
+<section id="v-remote" class="view" hidden style="flex-direction:column;gap:18px">
+  <button class="back" data-back>→ יציאה</button>
+  <h2 class="title" id="rm-title">מחובר למסך</h2>
+  <div class="huge" id="rm-speed">—<small> קמ״ש</small></div>
+  <div class="stat"><div><b id="rm-hits">0</b><span>מכות</span></div><div><b id="rm-streak">0</b><span>רצף</span></div><div><b id="rm-best">0</b><span>שיא קמ״ש</span></div></div>
+  <p class="hint" id="rm-hint">עמוד מול המסך, תחזיק את הטלפון כמו מחבט ולחץ התחל.</p>
+  <button class="big" id="rm-start">התחל</button>
+  <button class="big ghost" id="rm-zero" hidden>כייל מחבט מחדש</button>
+</section>
+
+</div>
+
+<div class="count" id="count" hidden>
+  <div><div class="pulse"></div><h2 id="count-t">היכנס לעמדת מוכנות</h2><p id="count-p">שני טיקים, ואז צלצול. לא צריך להסתכל על המסך.</p>
+  <button class="big ghost" id="count-cancel" style="margin-top:28px">ביטול</button></div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
