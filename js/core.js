@@ -110,7 +110,7 @@ export class Racket {
     const wx = (rr.beta || 0) * Math.PI / 180, wy = (rr.gamma || 0) * Math.PI / 180, wz = (rr.alpha || 0) * Math.PI / 180;
     const w = Math.hypot(wx, wy, wz); this.w = w;
     if (w > 1e-6) this.q = Q.norm(Q.mul(this.q, Q.axisAngle([wx, wy, wz], w * dt)));
-    const sample = { t: now, q: this.q, w, dt };
+    const sample = { t: now, q: this.q, w, dt, wv: [wx, wy, wz] };
     for (const f of this.listeners) f(sample);
   }
 }
@@ -124,7 +124,7 @@ export class SwingDetector {
     const kmh = s.w * this.lever * 3.6; // racket-head speed from angular velocity
     let hit = null;
     if (this.armed) {
-      if (kmh > this.thr && (!this.peak || kmh >= this.peak.kmh)) this.peak = { kmh, q: s.q, t: s.t };
+      if (kmh > this.thr && (!this.peak || kmh >= this.peak.kmh)) this.peak = { kmh, q: s.q, t: s.t, wv: s.wv };
       if (this.peak && kmh < this.peak.kmh * 0.8) { hit = this.peak; this.peak = null; this.armed = false; this.calm = 0; }
     } else {
       this.calm = kmh < this.thr * 0.45 ? this.calm + s.dt : 0;

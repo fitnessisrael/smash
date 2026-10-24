@@ -10,7 +10,7 @@ async function load3d() {
 
 const S = {
   sport: store.get("sport", "tennis"), side: store.get("side", 1), stroke: store.get("stroke", "fh"),
-  feed: store.get("feed", "mix"), solo: store.get("solo", "one"),
+  feed: store.get("feed", "mix"), pmode: store.get("pmode", "easy"), solo: store.get("solo", "one"),
 };
 const sound = new Sound();
 const racket = new Racket();
@@ -52,6 +52,15 @@ function renderFeed() {
 }
 const pickFeed = v => { S.feed = v; store.set("feed", v); renderFeed(); send({ type: "feed", feed: v }); };
 pressGroup($("feed"), pickFeed); pressGroup($("rm-feed"), pickFeed);
+// forgiving vs real ball physics on the big screen
+function paintMode() {
+  for (const id of ["pm1", "pm2"]) setPressed($(id), S.pmode);
+  for (const p of document.querySelectorAll("[data-modehint]")) p.textContent = S.pmode === "real"
+    ? "אמיתי: הכדור טס לפי זווית פני המחבט, מהירות התנופה, התזמון ומקום הפגיעה. מכה לא מדויקת תלך לרשת או החוצה."
+    : "סלחני: מכה בזמן סביר תעבור את הרשת ותיכנס למגרש. טוב להתחלה.";
+}
+const pickMode = v => { S.pmode = v; store.set("pmode", v); paintMode(); send({ type: "mode", mode: v }); };
+pressGroup($("pm1"), pickMode); pressGroup($("pm2"), pickMode); paintMode();
 
 function renderReplays() {
   const r = store.get("replays", []);
@@ -292,7 +301,7 @@ $("tv-connect").onclick = async () => {
     await new Promise((res, rej) => { conn.on("open", res); conn.on("error", rej); peer.on("error", rej); setTimeout(() => rej(new Error("timeout")), 9000); });
     conn.on("data", onTvData);
     conn.on("close", () => { if (current === "remote") { $("rm-title").textContent = "החיבור למסך נותק"; if (lock.on) $("lk-t").textContent = "החיבור למסך נותק"; } });
-    send({ type: "hello", sport: S.sport, side: S.side, feed: S.feed }); renderFeed();
+    send({ type: "hello", sport: S.sport, side: S.side, feed: S.feed, mode: S.pmode }); renderFeed();
     stats = { hits: 0, streak: 0, best: 0 }; paintStats();
     show("remote");
   } catch (e) {
@@ -327,7 +336,7 @@ function startStreaming() {
     if (h) {
       sound.hit(S.sport, h.kmh / 80); sound.buzz();
       const face = Q.rot(h.q, [0, 0, 1]);
-      send({ type: "hit", kmh: h.kmh, face, q: h.q, at: Date.now() });
+      send({ type: "hit", kmh: h.kmh, face, q: h.q, ww: Q.rot(h.q, h.wv || [0, 0, 0]), at: Date.now() });
       flash();
       stats.best = Math.max(stats.best, Math.round(h.kmh));
       $("rm-speed").innerHTML = $("lk-speed").innerHTML = `${Math.round(h.kmh)}<small> קמ״ש</small>`; paintStats();
