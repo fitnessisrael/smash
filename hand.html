@@ -26,6 +26,16 @@
   .seg button{white-space:nowrap}
   .note{font-size:12px;color:var(--muted)}
   #err{color:var(--bad);font-weight:700}
+  #v-live{position:fixed;inset:0;z-index:20;background:#000}
+  #v-live .stage{position:absolute;inset:0;max-height:none;aspect-ratio:auto;border:0;border-radius:0}
+  #v-live .stats{position:absolute;z-index:3;bottom:max(10px,env(safe-area-inset-bottom));inset-inline:12px;pointer-events:none;max-width:560px;margin:0 auto}
+  #v-live .stats div{background:#000a;padding:6px 4px}
+  #v-live .stats b{font-size:20px}
+  #last{position:absolute;z-index:3;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 70px);inset-inline:0;pointer-events:none;text-shadow:0 1px 8px #000;color:var(--chalk)!important}
+  #stop{position:absolute;z-index:4;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:auto;padding:8px 24px;font-size:15px;background:#000a}
+  .tgt{top:max(12px,env(safe-area-inset-top))}
+  .tgt span{font-size:clamp(15px,2.2vw,22px)}
+  .big-say{font-size:clamp(44px,9vw,120px)}
 </style>
 </head>
 <body>
@@ -41,6 +51,12 @@
     <span class="label">מצב</span>
     <div class="seg" id="mode"><button data-v="balls" aria-pressed="true">כדורים</button><button data-v="free" aria-pressed="false">חופשי</button><button data-v="challenge" aria-pressed="false">אתגר</button></div>
     <p class="note" id="mode-d">זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.</p>
+    <div id="ballopts" style="display:flex;flex-direction:column;gap:8px">
+      <span class="label">יד חובטת</span>
+      <div class="seg" id="hand"><button data-v="r" aria-pressed="true">ימין</button><button data-v="l" aria-pressed="false">שמאל</button></div>
+      <span class="label">איזו חבטה?</span>
+      <div class="seg" id="ball"><button data-v="fh" aria-pressed="true">פורהנד</button><button data-v="bh" aria-pressed="false">בקהנד</button><button data-v="mix" aria-pressed="false">מעורב</button></div>
+    </div>
     <div id="chal" style="display:none;flex-direction:column;gap:8px">
       <span class="label">אילו חבטות באתגר?</span>
       <div class="seg" id="which"><button data-v="all" aria-pressed="true">הכל</button><button data-v="fh" aria-pressed="false">פורהנד</button><button data-v="bh" aria-pressed="false">בקהנד</button><button data-v="sm" aria-pressed="false">סמש</button></div>
@@ -85,13 +101,13 @@ if (!account.require()) throw new Error("no account");
 const paint = () => { const t = $("trial"); if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
 paint();
 
-const S = { mode: "balls", which: "all", cam: "user" };
-for (const id of ["mode", "which", "cam"]) {
+const S = { mode: "balls", which: "all", cam: "user", hand: "r", ball: "fh" };
+for (const id of ["mode", "which", "cam", "hand", "ball"]) {
   $(id).addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     S[id] = b.dataset.v;
     for (const x of $(id).children) x.setAttribute("aria-pressed", String(x === b));
-    if (id === "mode") { $("chal").style.display = S.mode === "challenge" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
+    if (id === "mode") { $("ballopts").style.display = S.mode === "balls" ? "flex" : "none"; $("chal").style.display = S.mode === "challenge" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
   });
 }
 const sound = new Sound();
@@ -118,7 +134,7 @@ $("start").onclick = async () => {
   err("");
   $("start").disabled = true; $("start").textContent = "טוען…";
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: S.cam, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: S.cam, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
   } catch (e) {
     err("אין גישה למצלמה. אשר את הרשאת המצלמה בדפדפן ונסה שוב."); reset(); return;
   }
@@ -129,15 +145,16 @@ $("start").onclick = async () => {
   }
   const v = $("vid"); v.srcObject = stream; await v.play();
   $("stage").classList.toggle("mirror", S.cam === "user");
-  show("v-live");
+  show("v-live"); document.body.classList.add("locked");
+  try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch (e) {}
   try { wl = await navigator.wakeLock.request("screen"); } catch (e) {}
   counted = false; Object.assign(G, { all: 0, r: 0, l: 0, best: 0, score: 0, round: 0, target: null, phase: "idle" });
-  resetHands(); LAST = null; BODY = null; B.list = []; B.n = B.ret = B.streak = 0; B.r = B.l = 0; B.next = performance.now() + 1500;
+  resetHands(); LAST = null; BODY = null; B.list = []; B.n = B.ret = B.streak = 0; B.r = B.l = 0; B.next = performance.now() + 1200; B.timers.forEach(clearTimeout); B.timers = []; B.prepping = false; B.alt = 0;
   paintStats(); running = true; loop(); render();
   if (S.mode === "challenge") nextRound(1200); else if (S.mode === "free") say("חבוט!", 1200); else say("היכון!", 1200);
 };
 function reset() { $("start").disabled = false; $("start").textContent = "הפעל מצלמה"; }
-function stopCam() { running = false; clearTimeout(G.timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; try { wl && wl.release(); } catch (e) {} }
+function stopCam() { running = false; document.body.classList.remove("locked"); B.timers.forEach(clearTimeout); B.timers = []; B.prepping = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} clearTimeout(G.timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; try { wl && wl.release(); } catch (e) {} }
 $("stop").onclick = () => { stopCam(); show("v-setup"); reset(); };
 document.addEventListener("visibilitychange", () => { if (document.hidden && running) { stopCam(); show("v-setup"); reset(); } });
 
@@ -259,22 +276,35 @@ function updateWrists(now) {
     w.x = p.x; w.y = p.y; w.t = now; w.ok = true;
   }
   const a = scr(LS, g), b = scr(RS, g);
-  if (a.ok && b.ok) BODY = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, sw: Math.hypot(a.x - b.x, a.y - b.y) };
+  if (a.ok && b.ok) {
+    const n = { ls: a, rs: b, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, sw: Math.hypot(a.x - b.x, a.y - b.y) };
+    if (BODY) for (const f of ["x", "y", "sw"]) n[f] = BODY[f] * 0.8 + n[f] * 0.2;
+    BODY = n;
+  }
 }
 
-const B = { list: [], next: 0, n: 0, ret: 0, streak: 0, r: 0, l: 0, rings: [] };
+const B = { timers: [], prepping: false, alt: 0, list: [], next: 0, n: 0, ret: 0, streak: 0, r: 0, l: 0, rings: [] };
 const netY = H => H * 0.3;
 function launch(g) {
-  const W = g.cw, H = g.ch, body = BODY || { x: W / 2, y: H * 0.6, sw: W * 0.25 };
-  const side = Math.random() < 0.5 ? -1 : 1;
-  const tx = clamp(body.x + side * body.sw * (0.9 + Math.random() * 0.7), W * 0.12, W * 0.88);
-  const ty = clamp(body.y + body.sw * (0.1 + Math.random() * 0.6), H * 0.45, H * 0.85);
-  const x0 = W * (0.3 + Math.random() * 0.4), y0 = netY(H) - H * 0.02;
-  const dur = 1.7 - Math.min(0.6, B.n * 0.04);
-  B.list.push({ st: "in", t0: performance.now(), dur: dur * 1000, x0, y0, tx, ty, r0: W * 0.018, r1: W * 0.055, x: x0, y: y0, r: W * 0.018 });
-  B.n++; sound.tick();
+  const W = g.cw, H = g.ch, body = BODY || { x: W / 2, y: H * 0.6, sw: W * 0.2, ls: { x: W * 0.6, y: H * 0.55 }, rs: { x: W * 0.4, y: H * 0.55 } };
+  const kind = B.kind;
+  const hs = S.hand === "r" ? body.rs : body.ls, os = S.hand === "r" ? body.ls : body.rs;
+  const out = Math.sign(hs.x - os.x) || 1;
+  // forehand: ball on the hitting-hand side. backhand: across the body.
+  const tx = clamp(kind === "fh" ? hs.x + out * body.sw * 0.45 : os.x - out * body.sw * 0.25, W * 0.1, W * 0.9);
+  const ty = clamp(body.y + body.sw * 0.6, H * 0.45, H * 0.88);
+  const x0 = tx * 0.5 + W * 0.25, y0 = netY(H) - H * 0.02;
+  B.list.push({ st: "in", t0: performance.now(), dur: 1500, x0, y0, tx, ty, r0: W * 0.014, r1: W * 0.05, x: x0, y: y0, r: W * 0.014 });
+  B.n++; sound.tick(true);
   if (!counted) { account.use(); counted = true; paint(); }
-  $("t-left").textContent = "כדור " + B.n;
+}
+function prepare(g) {
+  B.prepping = true;
+  B.kind = S.ball === "mix" ? (B.alt++ % 2 ? "bh" : "fh") : S.ball;
+  $("t-left").textContent = "כדור " + (B.n + 1) + " · " + NAMES[B.kind];
+  say(NAMES[B.kind], 1500); sound.tick();
+  B.timers.push(setTimeout(() => sound.tick(), 550));
+  B.timers.push(setTimeout(() => { B.prepping = false; if (running) { const gg = geo(); if (gg) launch(gg); } }, 1100));
 }
 function hitBall(b, id, speed, w, g, now) {
   const W = g.cw, H = g.ch, power = clamp(Math.round(speed / 14 * 100), 5, 100);
@@ -288,11 +318,11 @@ function hitBall(b, id, speed, w, g, now) {
 }
 function gameStep(g, now) {
   if (S.mode !== "balls") return;
-  if (!B.list.length && now >= B.next) launch(g);
+  if (!B.list.length && !B.prepping && now >= B.next) prepare(g);
   const sw = BODY ? BODY.sw : g.cw * 0.25;
   for (const b of B.list) {
     if (b.st === "in") {
-      const u = (now - b.t0) / b.dur, e = Math.pow(Math.max(0, u), 1.6);
+      const u = (now - b.t0) / b.dur, e = Math.pow(Math.max(0, u), 1.3);
       b.x = b.x0 + (b.tx - b.x0) * e; b.y = b.y0 + (b.ty - b.y0) * e - Math.sin(Math.PI * Math.min(1, e)) * g.ch * 0.05; b.r = Math.min(b.r1 * 1.25, b.r0 + (b.r1 - b.r0) * e);
       if (u > 0.3) for (const id of [LW, RW]) {
         const w = WR[id]; if (!w || !w.ok || b.st !== "in") continue;
@@ -301,7 +331,7 @@ function gameStep(g, now) {
         const t = clamp(((b.x - w.px) * sx + (b.y - w.py) * sy) / L2, 0, 1);
         const d = Math.hypot(b.x - (w.px + sx * t), b.y - (w.py + sy * t));
         const speed = Math.hypot(w.vx, w.vy) / sw;
-        if (d < b.r + g.cw * 0.055 && speed > 2.2) hitBall(b, id, speed, w, g, now);
+        if (d < b.r + g.cw * 0.055 && speed > 2.0) hitBall(b, id, speed, w, g, now);
       }
       if (b.st === "in" && u > 1.3) { b.st = "gone"; B.streak = 0; say("פספוס", 700); sound.clip("bounce", 0.5); }
     } else if (b.st === "back") {
@@ -315,7 +345,7 @@ function gameStep(g, now) {
       }
     }
   }
-  if (B.list.length && B.list.every(b => b.st === "gone")) { B.list = []; B.next = now + 700 + Math.random() * 600; }
+  if (B.list.length && B.list.every(b => b.st === "gone")) { B.list = []; B.next = now + 800; }
 }
 function render() {
   if (!running) return;
