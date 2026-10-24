@@ -138,12 +138,23 @@ export class SwingDetector {
 /* ---------- sound (synthesised, no files) ---------- */
 export class Sound {
   constructor() { this.ctx = null; }
+  // iPhone silent switch mutes Web Audio unless a media element is playing.
+  // So we keep a silent looping <audio> running and ask for the "playback" audio session.
   unlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+    if (!this.media) {
+      const a = document.createElement("audio");
+      a.src = silentWavUrl(); a.loop = true; a.setAttribute("playsinline", ""); a.preload = "auto";
+      a.setAttribute("x-webkit-airplay", "deny"); document.body.appendChild(a); a.hidden = true;
+      this.media = a;
+    }
+    this.media.play().catch(() => {});
     if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
-    if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
-    // play a silent blip so iOS keeps audio unlocked
+    if (this.ctx && this.ctx.state !== "running") this.ctx.resume().catch(() => {});
     if (this.ctx) { const o = this.ctx.createOscillator(), g = this.ctx.createGain(); g.gain.value = 0; o.connect(g).connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime + 0.01); }
   }
+  // call when coming back to the page (e.g. after the screen turned off)
+  wake() { if (this.media && this.media.paused) this.media.play().catch(() => {}); if (this.ctx && this.ctx.state !== "running") this.ctx.resume().catch(() => {}); }
   hit(sport = "tennis", power = 1) {
     const c = this.ctx; if (!c) return; const t = c.currentTime;
     const p = Math.max(0.35, Math.min(1, power));
@@ -172,6 +183,50 @@ export class Sound {
     o.connect(g).connect(c.destination); o.start(t); o.stop(t + (high ? 0.55 : 0.06));
   }
   buzz() { if (navigator.vibrate) try { navigator.vibrate(25); } catch (e) {} }
+}
+
+function silentWavUrl() {
+  const sr = 8000, n = sr, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, "data"); v.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+}
+
+/* ---------- play lock: while the phone is the racket, stray touches and the back gesture do nothing ---------- */
+export class PlayLock {
+  constructor(el, holdBtn, onUnlock) {
+    this.el = el; this.btn = holdBtn; this.onUnlock = onUnlock; this.on = false; this.wl = null;
+    const stop = e => { if (this.on && !e.target.closest("#" + holdBtn.id)) { e.preventDefault(); e.stopPropagation(); } };
+    for (const t of ["touchstart", "touchmove", "touchend", "click", "dblclick", "contextmenu", "gesturestart"]) el.addEventListener(t, stop, { passive: false });
+    document.addEventListener("touchmove", e => { if (this.on) e.preventDefault(); }, { passive: false });
+    // hold to unlock
+    let timer = null, t0 = 0, raf = 0;
+    const fill = holdBtn.querySelector("i");
+    const begin = e => { e.preventDefault(); t0 = performance.now(); const step = () => { const p = Math.min(1, (performance.now() - t0) / 1500); fill.style.width = p * 100 + "%"; if (p >= 1) { end(); this.release(true); } else raf = requestAnimationFrame(step); }; raf = requestAnimationFrame(step); };
+    const end = () => { cancelAnimationFrame(raf); fill.style.width = "0"; };
+    holdBtn.addEventListener("touchstart", begin, { passive: false }); holdBtn.addEventListener("mousedown", begin);
+    for (const t of ["touchend", "touchcancel", "mouseup", "mouseleave"]) holdBtn.addEventListener(t, end);
+    holdBtn.addEventListener("contextmenu", e => e.preventDefault());
+    // back gesture / back button: stay on the page
+    addEventListener("popstate", () => { if (this.on) history.pushState({ lock: 1 }, ""); });
+    addEventListener("beforeunload", e => { if (this.on) { e.preventDefault(); e.returnValue = ""; } });
+    document.addEventListener("visibilitychange", () => { if (this.on && document.visibilityState === "visible") this.keepAwake(); });
+  }
+  async keepAwake() { try { if ("wakeLock" in navigator) this.wl = await navigator.wakeLock.request("screen"); } catch (e) {} }
+  engage() {
+    if (this.on) return; this.on = true; this.el.hidden = false; document.body.classList.add("locked");
+    history.pushState({ lock: 1 }, ""); this.keepAwake();
+    const d = document.documentElement;
+    try { if (d.requestFullscreen && !document.fullscreenElement) d.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); } catch (e) {}
+  }
+  release(byUser = false) {
+    if (!this.on) return; this.on = false; this.el.hidden = true; document.body.classList.remove("locked");
+    try { this.wl && this.wl.release(); } catch (e) {} this.wl = null;
+    try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
+    if (byUser && this.onUnlock) this.onUnlock();
+  }
 }
 
 /* ---------- racket pose → hand + tip positions (simple arm model) ---------- */

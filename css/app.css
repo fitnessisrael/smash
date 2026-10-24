@@ -76,6 +76,18 @@ button{font-family:inherit;cursor:pointer}
 .list button span{color:var(--muted);font-size:14px}
 .list button b{font-family:var(--f-num);color:var(--lime)}
 .code{font-family:var(--f-num);font-size:44px;letter-spacing:10px;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;width:100%;color:var(--lime);direction:ltr}
+.lock{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;
+  padding:calc(env(safe-area-inset-top,0px) + 28px) max(20px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 22px) max(20px,env(safe-area-inset-left,0px));
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:background .12s}
+.lock.flash{background:#232b06}
+.lock-in{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;width:100%;max-width:460px}
+.lock h2{font-size:42px}
+.lock p{color:var(--muted);font-size:19px;margin:0 auto;max-width:24ch}
+.hold{position:relative;overflow:hidden;width:100%;max-width:460px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px solid var(--line);background:var(--panel);color:var(--chalk);border-radius:16px;padding:18px;font-size:17px;font-weight:700;touch-action:none;-webkit-user-select:none;user-select:none}
+.hold svg{width:22px;height:22px;position:relative}
+.hold span{position:relative}
+.hold i{position:absolute;inset:0 auto 0 0;width:0;background:var(--lime-dim)}
+body.locked{overflow:hidden;overscroll-behavior:none}
 .count{position:fixed;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 88%,transparent);z-index:20;text-align:center;padding:24px}
 .count h2{font-size:44px}
 .count p{color:var(--muted);font-size:18px;max-width:22ch;margin:12px auto 0}

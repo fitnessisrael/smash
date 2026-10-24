@@ -57,15 +57,19 @@
 <section id="v-setup" class="view" hidden style="flex-direction:column;gap:18px">
   <button class="back" data-back>→ חזרה</button>
   <h2 class="title">טלפון בלבד</h2>
+  <span class="label">על איזו חבטה מתאמנים?</span>
   <div class="grid2" id="strokes"></div>
+  <span class="label">איך?</span>
+  <div class="seg" id="solo"><button data-v="one">מכה אחת + הילוך חוזר</button><button data-v="drill">אימון רצוף</button></div>
   <div class="card">
     <ol class="steps">
       <li><i>1</i><span>תחזיק את הטלפון כמו ידית של מחבט. <b>החלק העליון של הטלפון = ראש המחבט. המסך = המיתרים.</b></span></li>
       <li><i>2</i><span>לחץ "יאללה" ועמוד בעמדת מוכנות. תשמע שני טיקים ואז צלצול.</span></li>
-      <li><i>3</i><span>עשה מכה אחת. ההילוך החוזר נפתח לבד.</span></li>
+      <li><i>3</i><span id="setup-step3">עשה מכה אחת. ההילוך החוזר נפתח לבד.</span></li>
     </ol>
   </div>
-  <p class="hint">תחזיק חזק ותשאיר מקום פנוי סביבך.</p>
+  <p class="hint">המסך ננעל בזמן האימון, כדי שנגיעות בטעות לא יעצרו אותו. לפתיחה: מחזיקים את הכפתור למטה 2 שניות.</p>
+  <div class="msg" id="setup-msg" hidden></div>
   <button class="big" id="start-replay">יאללה</button>
 </section>
 
@@ -96,8 +100,8 @@
     </ol>
   </div>
   <input class="code" id="tv-code" inputmode="numeric" maxlength="4" placeholder="····" autocomplete="off" aria-label="קוד המסך">
-  <span class="label">איזה כדורים לקבל?</span>
-  <div class="seg" id="feed"><button data-v="mix">מעורב</button><button data-v="fh">פורהנד</button><button data-v="bh">בקהנד</button></div>
+  <span class="label">על איזו חבטה מתאמנים?</span>
+  <div class="grid2" id="feed"></div>
   <button class="big" id="tv-connect">התחבר למסך</button>
   <div class="msg" id="tv-err" hidden></div>
 </section>
@@ -108,16 +112,24 @@
   <h2 class="title" id="rm-title">מחובר למסך</h2>
   <div class="huge" id="rm-speed">—<small> קמ״ש</small></div>
   <div class="stat"><div><b id="rm-hits">0</b><span>מכות</span></div><div><b id="rm-streak">0</b><span>רצף</span></div><div><b id="rm-best">0</b><span>שיא קמ״ש</span></div></div>
-  <p class="hint" id="rm-hint">עמוד מול המסך, תחזיק את הטלפון כמו מחבט ולחץ התחל.</p>
+  <span class="label">חבטה</span>
+  <div class="grid2" id="rm-feed"></div>
+  <p class="hint" id="rm-hint">עמוד מול המסך, תחזיק את הטלפון כמו מחבט ולחץ התחל. המסך בטלפון יינעל עד שתחזיק את הכפתור 2 שניות.</p>
   <button class="big" id="rm-start">התחל</button>
-  <button class="big ghost" id="rm-zero" hidden>כייל מחבט מחדש</button>
 </section>
 
 </div>
 
-<div class="count" id="count" hidden>
-  <div><div class="pulse"></div><h2 id="count-t">היכנס לעמדת מוכנות</h2><p id="count-p">שני טיקים, ואז צלצול. לא צריך להסתכל על המסך.</p>
-  <button class="big ghost" id="count-cancel" style="margin-top:28px">ביטול</button></div>
+<div class="lock" id="lock" hidden>
+  <div class="lock-in">
+    <span class="label" id="lk-mode"></span>
+    <div class="pulse" id="lk-pulse"></div>
+    <h2 id="lk-t"></h2>
+    <p id="lk-p"></p>
+    <div class="huge" id="lk-speed" hidden>—<small> קמ״ש</small></div>
+    <div class="stat" id="lk-stats" hidden><div><b id="lk-a">0</b><span id="lk-a-l">מכות</span></div><div><b id="lk-b">0</b><span id="lk-b-l">רצף</span></div><div><b id="lk-c">0</b><span>שיא קמ״ש</span></div></div>
+  </div>
+  <button class="hold" id="lk-hold"><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="lk-hold-t">החזק 2 שניות כדי לעצור</span></button>
 </div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>

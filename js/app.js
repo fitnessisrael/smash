@@ -1,5 +1,5 @@
 // סמש — phone app
-import { Q, SPORTS, strokeName, store, Racket, SwingDetector, Sound, armPose, demoSwing, $, pressGroup } from "./core.js";
+import { Q, SPORTS, strokeName, store, Racket, SwingDetector, Sound, PlayLock, armPose, demoSwing, $, pressGroup } from "./core.js";
 // 3D is loaded on demand so the rest of the app works even if it is slow to load
 let makeScene, makeRacket, makeBall, poseRacket, COURT, THREE, OrbitControls;
 async function load3d() {
@@ -10,7 +10,7 @@ async function load3d() {
 
 const S = {
   sport: store.get("sport", "tennis"), side: store.get("side", 1), stroke: store.get("stroke", "fh"),
-  feed: store.get("feed", "mix"),
+  feed: store.get("feed", "mix"), solo: store.get("solo", "one"),
 };
 const sound = new Sound();
 const racket = new Racket();
@@ -28,12 +28,14 @@ document.addEventListener("click", e => { if (e.target.closest("[data-back]")) {
 
 /* ---------------- home ---------------- */
 function setPressed(el, v) { for (const b of el.querySelectorAll("button[data-v]")) b.setAttribute("aria-pressed", String(b.dataset.v === String(v))); }
-setPressed($("sport"), S.sport); setPressed($("hand"), S.side); setPressed($("feed"), S.feed);
+setPressed($("sport"), S.sport); setPressed($("hand"), S.side); setPressed($("solo"), S.solo);
 pressGroup($("sport"), v => { S.sport = v; store.set("sport", v); renderStrokes(); });
 pressGroup($("hand"), v => { S.side = Number(v); store.set("side", S.side); });
-pressGroup($("feed"), v => { S.feed = v; store.set("feed", v); });
+pressGroup($("solo"), v => { S.solo = v; store.set("solo", v); stepText(); });
+function stepText() { $("setup-step3").textContent = S.solo === "drill" ? "עשה כמה מכות שתרצה. כל מכה נספרת ומשמיעה צליל. בסוף תראה הילוך חוזר של המכה הכי טובה." : "עשה מכה אחת. ההילוך החוזר נפתח לבד."; }
+stepText();
 $("go-replay").onclick = () => { renderStrokes(); show("setup"); };
-$("go-tv").onclick = () => { $("tv-url").textContent = location.host + "/tv"; show("tv"); };
+$("go-tv").onclick = () => { $("tv-url").textContent = location.host + "/tv"; renderFeed(); show("tv"); };
 
 function renderStrokes() {
   const list = SPORTS[S.sport].strokes;
@@ -41,6 +43,15 @@ function renderStrokes() {
   $("strokes").innerHTML = list.map(([k, he]) => `<button class="choice" data-v="${k}" aria-pressed="${k === S.stroke}">${he}</button>`).join("");
 }
 pressGroup($("strokes"), v => { S.stroke = v; store.set("stroke", v); });
+// stroke picker for screen mode (adds "mixed")
+function renderFeed() {
+  const list = [["mix", "מעורב"], ...SPORTS[S.sport].strokes];
+  if (!list.some(s => s[0] === S.feed)) S.feed = "mix";
+  const html = list.map(([k, he]) => `<button class="choice" data-v="${k}" aria-pressed="${k === S.feed}">${he}</button>`).join("");
+  $("feed").innerHTML = html; $("rm-feed").innerHTML = html;
+}
+const pickFeed = v => { S.feed = v; store.set("feed", v); renderFeed(); send({ type: "feed", feed: v }); };
+pressGroup($("feed"), pickFeed); pressGroup($("rm-feed"), pickFeed);
 
 function renderReplays() {
   const r = store.get("replays", []);
@@ -59,54 +70,97 @@ async function ensureSensors() {
   try { await racket.start(); sensorsOn = true; return true; } catch (e) { return false; }
 }
 
-/* ---------------- record one swing ---------------- */
-let recCancel = null;
+/* ---------------- play lock ---------------- */
+let onLockRelease = null;
+const lock = new PlayLock($("lock"), $("lk-hold"), () => onLockRelease && onLockRelease());
+function lockScreen({ mode, title, text, stats = false, hold = "החזק 2 שניות כדי לעצור" }) {
+  $("lk-mode").textContent = mode || ""; $("lk-t").textContent = title || ""; $("lk-p").textContent = text || "";
+  $("lk-speed").hidden = !stats; $("lk-stats").hidden = !stats; $("lk-pulse").hidden = stats; $("lk-hold-t").textContent = hold;
+  lock.engage();
+}
+function flash() { $("lock").classList.add("flash"); setTimeout(() => $("lock").classList.remove("flash"), 140); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sound.wake(); });
+
+/* ---------------- phone only: one swing or a drill ---------------- */
 $("start-replay").onclick = async () => {
+  $("setup-msg").hidden = true;
   const ok = await ensureSensors();
   if (!ok) { // computer / no sensors: show a demo replay
     openReplay({ d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: demoSwing(S.stroke), demo: true });
     return;
   }
-  record();
+  S.solo === "drill" ? drill() : record();
 };
-$("count-cancel").onclick = () => { recCancel && recCancel(); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
+async function countIn(isCancelled) {
+  await wait(1300); if (isCancelled()) return false; sound.tick(); flash(); sound.buzz();
+  await wait(700); if (isCancelled()) return false; sound.tick(); flash(); sound.buzz();
+  await wait(700); if (isCancelled()) return false;
+  racket.zero(); sound.tick(true); flash(); sound.buzz();
+  return true;
+}
 async function record() {
-  let cancelled = false; recCancel = () => { cancelled = true; $("count").hidden = true; };
-  $("count").hidden = false; $("count-t").textContent = "היכנס לעמדת מוכנות"; $("count-p").textContent = "שני טיקים, ואז צלצול. לא צריך להסתכל על המסך.";
-  await wait(1400); if (cancelled) return; sound.tick();
-  await wait(700); if (cancelled) return; sound.tick();
-  await wait(700); if (cancelled) return;
-  racket.zero(); sound.tick(true); sound.buzz();
-  $("count-t").textContent = "מכה!"; $("count-p").textContent = "עשה מכה אחת עכשיו.";
+  let cancelled = false; onLockRelease = () => { cancelled = true; };
+  lockScreen({ mode: strokeName(S.sport, S.stroke), title: "היכנס לעמדת מוכנות", text: "שני טיקים, ואז צלצול. לא צריך להסתכל על המסך." });
+  if (!(await countIn(() => cancelled))) return;
+  $("lk-t").textContent = "מכה!"; $("lk-p").textContent = "עשה מכה אחת עכשיו.";
   const det = new SwingDetector(S.sport), frames = [], t0 = performance.now();
   let hitAt = 0, peak = null;
   const off = racket.on(s => {
     frames.push({ t: s.t - t0, q: s.q.slice(), kmh: s.w * SPORTS[S.sport].lever * 3.6 });
     const h = det.push(s);
-    if (h && !hitAt) { hitAt = s.t; peak = h; sound.hit(S.sport, h.kmh / 80); sound.buzz(); }
+    if (h && !hitAt) { hitAt = s.t; peak = h; sound.hit(S.sport, h.kmh / 80); sound.buzz(); flash(); }
   });
   while (!cancelled) {
     await wait(50);
     const now = performance.now();
     if (hitAt && now - hitAt > 700) break;
-    if (now - t0 > 7000) break;
+    if (now - t0 > 8000) break;
   }
-  off(); $("count").hidden = true;
+  off(); onLockRelease = null; lock.release();
   if (cancelled) return;
-  if (!peak) { alertBox("לא זיהינו מכה. נסה שוב, ותן לראש המחבט להשתחרר מהר יותר."); return; }
-  // keep ~1.2 s before the peak and 0.7 s after
-  const tp = peak.t - t0, cut = frames.filter(f => f.t > tp - 1200 && f.t < tp + 700);
-  const rep = { d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: thin(cut), peak: peak.kmh };
+  if (!peak) { setupMsg("לא זיהינו מכה. נסה שוב, ותן לראש המחבט להשתחרר מהר יותר."); return; }
+  saveAndOpen(frames, peak.t - t0);
+}
+function saveAndOpen(frames, tp) { // keep ~1.2 s before the peak and 0.7 s after
+  const cut = frames.filter(f => f.t > tp - 1200 && f.t < tp + 700);
+  const rep = { d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: thin(cut) };
+  rep.peak = Math.max(...rep.frames.map(f => f.kmh));
   const list = store.get("replays", []); list.unshift(rep); store.set("replays", list.slice(0, 12));
-  openReplay(rep);
+  openReplay(JSON.parse(JSON.stringify(rep)));
+}
+// drill: endless swings, each one counted with sound; keeps the best one for the replay
+async function drill() {
+  let stopped = false; onLockRelease = () => { stopped = true; };
+  lockScreen({ mode: "אימון רצוף · " + strokeName(S.sport, S.stroke), title: "היכנס לעמדת מוכנות", text: "שני טיקים, ואז צלצול." });
+  if (!(await countIn(() => stopped))) return;
+  lockScreen({ mode: "אימון רצוף · " + strokeName(S.sport, S.stroke), stats: true });
+  $("lk-a-l").textContent = "מכות"; $("lk-b-l").textContent = "ממוצע";
+  const det = new SwingDetector(S.sport), buf = []; let n = 0, sum = 0, bestKmh = 0, best = null, pendingBest = null;
+  const off = racket.on(s => {
+    buf.push({ t: s.t, q: s.q.slice(), kmh: s.w * SPORTS[S.sport].lever * 3.6 });
+    while (buf.length && s.t - buf[0].t > 2200) buf.shift();
+    if (pendingBest && s.t - pendingBest.t > 700) { best = { frames: buf.map(f => ({ ...f })), tp: pendingBest.t }; pendingBest = null; }
+    const h = det.push(s);
+    if (h) {
+      n++; sum += h.kmh; sound.hit(S.sport, h.kmh / 80); sound.buzz(); flash();
+      if (h.kmh > bestKmh) { bestKmh = h.kmh; pendingBest = { t: h.t }; }
+      $("lk-speed").innerHTML = `${Math.round(h.kmh)}<small> קמ״ש</small>`;
+      $("lk-a").textContent = n; $("lk-b").textContent = Math.round(sum / n); $("lk-c").textContent = Math.round(bestKmh);
+    }
+  });
+  while (!stopped) await wait(100);
+  off(); onLockRelease = null;
+  if (pendingBest) best = { frames: buf.map(f => ({ ...f })), tp: pendingBest.t };
+  if (best && best.frames) { const t0 = best.frames[0].t; best.frames.forEach(f => (f.t -= t0)); saveAndOpen(best.frames, best.tp - t0); }
+  else setupMsg(n ? "האימון נשמר." : "לא זיהינו מכות. תן לראש המחבט להשתחרר מהר יותר.");
 }
 function thin(fr) { // keep ~120 fps max, round numbers to save space
   const out = []; let last = -99;
   for (const f of fr) if (f.t - last >= 8) { out.push({ t: Math.round(f.t), q: f.q.map(v => +v.toFixed(4)), kmh: +f.kmh.toFixed(1) }); last = f.t; }
   return out;
 }
-function alertBox(text) { $("count").hidden = false; $("count-t").textContent = "אופס"; $("count-p").textContent = text; }
+function setupMsg(text) { show("setup"); $("setup-msg").textContent = text; $("setup-msg").hidden = false; }
 
 /* ---------------- replay viewer ---------------- */
 let R = null; // replay state
@@ -223,7 +277,7 @@ function renderMetrics(rep, pi) {
 /* ---------------- TV mode: phone is the racket ---------------- */
 let peer = null, conn = null, streamOff = null, hitOff = null, stats = { hits: 0, streak: 0, best: 0 };
 const urlCode = new URLSearchParams(location.search).get("tv");
-if (urlCode) { $("tv-code").value = urlCode; $("tv-url").textContent = location.host + "/tv"; show("tv"); }
+if (urlCode) { $("tv-code").value = urlCode; $("tv-url").textContent = location.host + "/tv"; renderFeed(); show("tv"); }
 
 $("tv-connect").onclick = async () => {
   const code = $("tv-code").value.replace(/\D/g, "");
@@ -237,8 +291,8 @@ $("tv-connect").onclick = async () => {
     conn = peer.connect("smash-tv-" + code, { reliable: false, serialization: "json" });
     await new Promise((res, rej) => { conn.on("open", res); conn.on("error", rej); peer.on("error", rej); setTimeout(() => rej(new Error("timeout")), 9000); });
     conn.on("data", onTvData);
-    conn.on("close", () => { if (current === "remote") { $("rm-title").textContent = "החיבור למסך נותק"; } });
-    send({ type: "hello", sport: S.sport, side: S.side, feed: S.feed });
+    conn.on("close", () => { if (current === "remote") { $("rm-title").textContent = "החיבור למסך נותק"; if (lock.on) $("lk-t").textContent = "החיבור למסך נותק"; } });
+    send({ type: "hello", sport: S.sport, side: S.side, feed: S.feed }); renderFeed();
     stats = { hits: 0, streak: 0, best: 0 }; paintStats();
     show("remote");
   } catch (e) {
@@ -253,14 +307,16 @@ function send(m) { try { conn && conn.open && conn.send(m); } catch (e) {} }
 $("rm-start").onclick = async () => {
   const ok = await ensureSensors();
   if (!ok) { $("rm-hint").textContent = "לא קיבלנו גישה לחיישני התנועה. פתח את האתר בטלפון (ספארי או כרום) ואשר גישה לתנועה."; return; }
-  $("rm-hint").textContent = "עמוד בעמדת מוכנות, הטלפון זקוף, המסך פונה לטלוויזיה…";
-  await wait(1200); sound.tick(); await wait(600);
-  racket.zero(); sound.tick(true);
-  $("rm-start").hidden = true; $("rm-zero").hidden = false; $("rm-hint").textContent = "מכה כשהכדור מגיע אליך. הצליל מסמן את רגע המגע.";
-  send({ type: "start" });
+  let stopped = false;
+  onLockRelease = () => { stopped = true; streamOff && streamOff(); streamOff = null; send({ type: "stop" }); $("rm-start").textContent = "המשך"; $("rm-hint").textContent = "עצרת. אפשר להחליף חבטה ולהמשיך."; };
+  const mode = "מול מסך · " + (S.feed === "mix" ? "מעורב" : strokeName(S.sport, S.feed));
+  lockScreen({ mode, title: "היכנס לעמדת מוכנות", text: "הטלפון זקוף, המסך פונה לטלוויזיה." });
+  if (!(await countIn(() => stopped))) return;
+  lockScreen({ mode, stats: true });
+  $("lk-a-l").textContent = "נכנסו"; $("lk-b-l").textContent = "רצף";
+  send({ type: "feed", feed: S.feed }); send({ type: "start" });
   startStreaming();
 };
-$("rm-zero").onclick = async () => { $("rm-hint").textContent = "עמדת מוכנות…"; await wait(900); racket.zero(); sound.tick(true); $("rm-hint").textContent = "כויל. אפשר להמשיך."; send({ type: "zero" }); };
 
 function startStreaming() {
   streamOff && streamOff(); hitOff && hitOff();
@@ -272,19 +328,24 @@ function startStreaming() {
       sound.hit(S.sport, h.kmh / 80); sound.buzz();
       const face = Q.rot(h.q, [0, 0, 1]);
       send({ type: "hit", kmh: h.kmh, face, q: h.q, at: Date.now() });
-      stats.best = Math.max(stats.best, Math.round(h.kmh)); $("rm-speed").innerHTML = `${Math.round(h.kmh)}<small> קמ״ש</small>`; paintStats();
+      flash();
+      stats.best = Math.max(stats.best, Math.round(h.kmh));
+      $("rm-speed").innerHTML = $("lk-speed").innerHTML = `${Math.round(h.kmh)}<small> קמ״ש</small>`; paintStats();
     }
   });
 }
 function onTvData(m) {
-  if (m.type === "score") { stats.hits = m.hits; stats.streak = m.streak; paintStats(); if (m.text) $("rm-title").textContent = m.text; }
+  if (m.type === "score") { stats.hits = m.hits; stats.streak = m.streak; paintStats(); if (m.text) { $("rm-title").textContent = m.text; if (lock.on) $("lk-t").textContent = m.text; } }
 }
-function paintStats() { $("rm-hits").textContent = stats.hits; $("rm-streak").textContent = stats.streak; $("rm-best").textContent = stats.best; }
+function paintStats() {
+  $("rm-hits").textContent = stats.hits; $("rm-streak").textContent = stats.streak; $("rm-best").textContent = stats.best;
+  if (lock.on && current === "remote") { $("lk-a").textContent = stats.hits; $("lk-b").textContent = stats.streak; $("lk-c").textContent = stats.best; }
+}
 function leaveRemote() {
   streamOff && streamOff(); streamOff = null;
   if (conn) { try { send({ type: "bye" }); conn.close(); } catch (e) {} conn = null; }
   if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
-  $("rm-start").hidden = false; $("rm-zero").hidden = true;
+  $("rm-start").textContent = "התחל";
 }
 
 renderStrokes(); renderReplays();
