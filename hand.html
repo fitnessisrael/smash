@@ -51,17 +51,13 @@
     <span class="label">עם מה חובטים?</span>
     <div class="seg" id="tool"><button data-v="hand">יד בלבד</button><button data-v="racket">מחבט אישי</button></div>
     <span class="label">מצב</span>
-    <div class="seg" id="mode"><button data-v="balls" aria-pressed="true">כדורים</button><button data-v="free" aria-pressed="false">חופשי</button><button data-v="challenge" aria-pressed="false">אתגר</button></div>
+    <div class="seg" id="mode"><button data-v="balls" aria-pressed="true">כדורים</button><button data-v="free" aria-pressed="false">חופשי</button></div>
     <p class="note" id="mode-d">זורקים עליך כדורים. נוגעים בהם והם עפים חזרה מעל הרשת, ואתה רואה לאן הם נוחתים.</p>
     <div id="ballopts" style="display:flex;flex-direction:column;gap:8px">
       <span class="label">יד חובטת</span>
       <div class="seg" id="hand"><button data-v="r" aria-pressed="true">ימין</button><button data-v="l" aria-pressed="false">שמאל</button></div>
       <span class="label">איזו חבטה?</span>
       <div class="seg" id="ball"><button data-v="fh" aria-pressed="true">פורהנד</button><button data-v="bh" aria-pressed="false">בקהנד</button><button data-v="mix" aria-pressed="false">מעורב</button></div>
-    </div>
-    <div id="chal" style="display:none;flex-direction:column;gap:8px">
-      <span class="label">אילו חבטות באתגר?</span>
-      <div class="seg" id="which"><button data-v="all" aria-pressed="true">הכל</button><button data-v="fh" aria-pressed="false">פורהנד</button><button data-v="bh" aria-pressed="false">בקהנד</button><button data-v="sm" aria-pressed="false">סמש</button></div>
     </div>
     <span class="label">מצלמה</span>
     <div class="seg" id="cam"><button data-v="user" aria-pressed="true">קדמית</button><button data-v="environment" aria-pressed="false">אחורית</button></div>
@@ -108,13 +104,13 @@ paint();
 if (!store.get("v3h", false)) { store.set("sport", "padel"); store.set("v3h", true); }
 const S = { mode: "balls", which: "all", cam: "user", hand: "r", ball: "fh", sport: store.get("sport", "padel"), tool: store.get("tool", "hand") };
 const setPressed = (id, v) => { for (const x of $(id).children) x.setAttribute("aria-pressed", String(x.dataset.v === v)); };
-for (const id of ["mode", "which", "cam", "hand", "ball", "sport", "tool"]) {
+for (const id of ["mode", "cam", "hand", "ball", "sport", "tool"]) {
   setPressed(id, S[id]);
   $(id).addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     S[id] = b.dataset.v; setPressed(id, S[id]);
     if (id === "sport" || id === "tool") store.set(id, S[id]);
-    if (id === "mode") { $("ballopts").style.display = S.mode === "balls" ? "flex" : "none"; $("chal").style.display = S.mode === "challenge" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם והם עפים חזרה מעל הרשת, ואתה רואה לאן הם נוחתים.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
+    if (id === "mode") { $("ballopts").style.display = S.mode === "balls" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם והם עפים חזרה מעל הרשת, ואתה רואה לאן הם נוחתים.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
   });
 }
 const sound = new Sound();
