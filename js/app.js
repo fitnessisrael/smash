@@ -96,7 +96,7 @@ function renderReplays() {
   renderMine();
   const r = recentReplays();
   $("replays-wrap").hidden = !r.length;
-  $("replays").innerHTML = r.slice(0, 6).map((x, i) => `<button data-i="${i}"><div>${strokeName(x.sport, x.stroke)} · ${SPORTS[x.sport].he}<br><span>${new Date(x.d).toLocaleDateString("he-IL")}</span></div><b>${Math.round(x.peak)} קמ״ש</b></button>`).join("");
+  $("replays").innerHTML = r.slice(0, 6).map((x, i) => `<button data-i="${i}"><div>${x.marks ? "סשן מלא · " + x.marks.length + " מכות" : strokeName(x.sport, x.stroke)} · ${SPORTS[x.sport].he}<br><span>${new Date(x.d).toLocaleDateString("he-IL")}</span></div><b>${Math.round(x.peak)} קמ״ש</b></button>`).join("");
 }
 $("replays").addEventListener("click", e => {
   const b = e.target.closest("button[data-i]"); if (!b) return;
@@ -140,8 +140,8 @@ $("start-replay").onclick = async () => {
   S.solo === "drill" ? drill() : record();
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
-async function countIn(isCancelled) {
-  await wait(1300); if (isCancelled()) return false; sound.tick(); flash(); sound.buzz();
+async function countIn(isCancelled, lead = 1300) {
+  await wait(lead); if (isCancelled()) return false; sound.tick(); flash(); sound.buzz();
   await wait(700); if (isCancelled()) return false; sound.tick(); flash(); sound.buzz();
   await wait(700); if (isCancelled()) return false;
   racket.zero(); sound.tick(true); flash(); sound.buzz();
@@ -178,35 +178,81 @@ function saveAndOpen(frames, tp, open = true) { // keep ~1.2 s before the peak a
   const list = store.get("replays", []); list.unshift(rep); store.set("replays", list.slice(0, 12));
   if (open) openReplay(JSON.parse(JSON.stringify(rep)));
 }
-// drill: endless swings, each one counted with sound; keeps the best one for the replay
+// drill: every swing gets its own count-in (tick, tick, ding), then ~2.5 s to get ready again.
+// The whole session is recorded (up to one minute of swing clips) and the best swing is kept on the card.
 async function drill() {
   let stopped = false; onLockRelease = () => { stopped = true; };
   const modeT = "אימון רצוף · " + strokeName(S.sport, S.stroke);
-  lockScreen({ mode: modeT, title: "היכנס לעמדת מוכנות", text: "שני טיקים, ואז צלצול." });
-  if (!(await countIn(() => stopped))) return;
-  account.use(); paintTrial();
-  lockScreen({ mode: modeT, stats: true }); startClock();
-  $("lk-a-l").textContent = "חבטות"; $("lk-b-l").textContent = "ממוצע קמ״ש";
-  const det = new SwingDetector(S.sport), buf = [], speeds = []; let n = 0, sum = 0, bestKmh = 0, best = null, pendingBest = null;
+  const lever = SPORTS[S.sport].lever;
+  lockScreen({ mode: modeT, title: "היכנס לעמדת מוכנות", text: "שני טיקים, ואז צלצול. אחרי כל מכה יש הפסקה קצרה." });
+  let listening = false, det = null, pending = null;
+  const buf = [], speeds = [], clips = []; let n = 0, sum = 0, bestKmh = 0, clipMs = 0;
   const off = racket.on(s => {
-    buf.push({ t: s.t, q: s.q.slice(), kmh: kmhOf(s, SPORTS[S.sport].lever) });
-    while (buf.length && s.t - buf[0].t > 2200) buf.shift();
-    if (pendingBest && s.t - pendingBest.t > 700) { best = { frames: buf.map(f => ({ ...f })), tp: pendingBest.t }; pendingBest = null; }
+    buf.push({ t: s.t, q: s.q.slice(), kmh: kmhOf(s, lever) });
+    while (buf.length && s.t - buf[0].t > 2400) buf.shift();
+    if (pending && s.t - pending.t >= 700) { // swing finished: cut the clip around it
+      const fr = buf.filter(f => f.t > pending.t - 1200 && f.t < pending.t + 700);
+      if (fr.length > 8 && clipMs + 1900 <= 60000) { clipMs += fr[fr.length - 1].t - fr[0].t; clips.push({ frames: fr.map(f => ({ ...f })), tp: pending.t, kmh: pending.kmh }); }
+      pending = null;
+    }
+    if (!listening) return;
     const h = det.push(s);
     if (h) {
-      n++; sum += h.kmh; speeds.push(h.kmh); sound.hit(S.sport, h.kmh / 80); sound.buzz(); flash();
-      if (h.kmh > bestKmh) { bestKmh = h.kmh; pendingBest = { t: h.t }; }
+      listening = false; n++; sum += h.kmh; speeds.push(h.kmh); bestKmh = Math.max(bestKmh, h.kmh); pending = { t: h.t, kmh: h.kmh };
+      sound.hit(S.sport, h.kmh / 80); sound.buzz(); flash();
       $("lk-speed").innerHTML = `${Math.round(h.kmh)}<small> קמ״ש</small>`;
       $("lk-a").textContent = n; $("lk-b").textContent = Math.round(sum / n); $("lk-c").textContent = Math.round(bestKmh);
     }
   });
-  while (!stopped) await wait(100);
-  off(); onLockRelease = null; const ms = stopClock();
-  if (pendingBest) best = { frames: buf.map(f => ({ ...f })), tp: pendingBest.t };
-  let hasReplay = false;
-  if (best && best.frames) { const t0 = best.frames[0].t; best.frames.forEach(f => (f.t -= t0)); saveAndOpen(best.frames, best.tp - t0, false); hasReplay = true; }
-  const act = await showSummary({ mode: modeT, sport: S.sport, ms, speeds, actions: hasReplay ? [{ id: "replay", label: "הילוך חוזר של המכה הטובה", primary: true }, { id: "done", label: "סיום" }] : [{ id: "done", label: "סיום", primary: true }] });
-  if (act === "replay") openReplay(store.get("replays", [])[0]); else show("home");
+  let first = true;
+  while (!stopped) {
+    if (!(await countIn(() => stopped, first ? 1300 : 500))) break;
+    if (first) { account.use(); paintTrial(); lockScreen({ mode: modeT, stats: true }); startClock(); $("lk-a-l").textContent = "חבטות"; $("lk-b-l").textContent = "ממוצע קמ״ש"; first = false; }
+    $("lk-t").textContent = "";
+    det = new SwingDetector(S.sport); listening = true;
+    const t0 = performance.now(), n0 = n;
+    while (!stopped && n === n0 && performance.now() - t0 < 9000) await wait(40); // wait for the swing (or repeat the count-in)
+    listening = false;
+    if (!stopped && n > n0) await wait(700); // let the swing clip finish recording
+  }
+  off(); onLockRelease = null; const ms = first ? 0 : stopClock();
+  if (first) { show("home"); return; }
+  // build the session video: the swing clips one after another
+  let best = null; for (const c of clips) if (!best || c.kmh > best.kmh) best = c;
+  let hasBest = false, hasVideo = false;
+  const cut = c => { const t0 = c.frames[0].t; return { frames: c.frames.map(f => ({ ...f, t: f.t - t0 })), tp: c.tp - t0 }; };
+  if (best) { const c = cut(best); saveAndOpen(c.frames, c.tp, false); hasBest = true; }
+  if (clips.length) {
+    const frames = [], marks = []; let off0 = 0, focus = [0, 0];
+    for (const c of clips) {
+      const k = cut(c), i0 = frames.length;
+      for (const f of k.frames) frames.push({ t: off0 + f.t, q: f.q, kmh: f.kmh });
+      marks.push({ t0: off0, t: off0 + k.tp, kmh: c.kmh, i0, i1: frames.length - 1 });
+      if (c === best) focus = [i0, frames.length - 1];
+      off0 += k.frames[k.frames.length - 1].t + 150;
+    }
+    saveSession(frames, marks, focus); hasVideo = true;
+  }
+  const acts = [];
+  if (hasVideo) acts.push({ id: "video", label: `צפה בסשן המלא (${clips.length} מכות)`, primary: true });
+  if (hasBest) acts.push({ id: "best", label: "המכה הטובה ביותר שלי" });
+  acts.push({ id: "done", label: "סיום", primary: !acts.length });
+  const act = await showSummary({ mode: modeT, sport: S.sport, ms, speeds, actions: acts });
+  const list = store.get("replays", []);
+  if (act === "video") openReplay(list.find(r => r.marks) || list[0]);
+  else if (act === "best") openReplay(list.find(r => !r.marks) || list[0]);
+  else show("home");
+}
+function saveSession(frames, marks, focus) {
+  const th = []; let last = -99; for (const f of frames) if (f.t - last >= 33) { th.push({ t: Math.round(f.t), q: f.q.map(v => +v.toFixed(3)), kmh: +f.kmh.toFixed(0) }); last = f.t; }
+  // marks / focus must point into the thinned list
+  const idx = t => { let i = 0; while (i < th.length - 1 && th[i].t < t) i++; return i; };
+  const m2 = marks.map(m => ({ t0: m.t0, t: m.t, kmh: m.kmh }));
+  const f0 = idx(frames[focus[0]].t), f1 = idx(frames[focus[1]].t);
+  const rep = { d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: th, marks: m2, focus: [f0, f1], peak: Math.max(...marks.map(m => m.kmh)) };
+  let list = store.get("replays", []); list.unshift(rep);
+  let nv = 0; list = list.filter(r => !r.marks || ++nv <= 3); // keep the last 3 full sessions (storage size)
+  store.set("replays", list.slice(0, 14));
 }
 function thin(fr) { // keep ~120 fps max, round numbers to save space
   const out = []; let last = -99;
@@ -243,7 +289,7 @@ function initViewer() {
   window.addEventListener("resize", () => sc.resize());
 
   st.load = (rep, pi) => {
-    st.rep = rep; st.pi = pi; st.t = 0; st.dur = rep.frames[rep.frames.length - 1].t; st.playing = true; $("rp-play").textContent = "⏸";
+    st.rep = rep; st.pi = pi; st.t = 0; st.speed = rep.marks ? 1 : 0.25; setPressed($("rp-speed"), st.speed); st.mi = -1; st.dur = rep.frames[rep.frames.length - 1].t; st.playing = true; $("rp-play").textContent = "⏸";
     sc.setSport(rep.sport);
     if (st.racket) sc.scene.remove(st.racket);
     st.racket = makeRacket(rep.sport); sc.scene.add(st.racket);
@@ -252,18 +298,21 @@ function initViewer() {
     // speed-coloured trail of the sweet spot
     if (st.trail) sc.scene.remove(st.trail);
     const pts = [], cols = [], max = rep.peak || 1;
-    st.pos.forEach((p, i) => { pts.push(...p.tip); const k = Math.min(1, rep.frames[i].kmh / max); cols.push(0.25 + 0.58 * k, 0.3 + 0.7 * k, 0.12 * (1 - k)); });
+    const [fa, fb] = rep.focus || [0, rep.frames.length - 1];
+    st.pos.forEach((p, i) => { if (i < fa || i > fb) return; pts.push(...p.tip); const k = Math.min(1, rep.frames[i].kmh / max); cols.push(0.25 + 0.58 * k, 0.3 + 0.7 * k, 0.12 * (1 - k)); });
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
     st.trail = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 }));
     sc.scene.add(st.trail);
     // faint ghost rackets along the swing
     while (st.ghosts.children.length) st.ghosts.remove(st.ghosts.children[0]);
     const n = rep.frames.length;
-    for (let i = 0; i < n; i += Math.max(1, Math.floor(n / 14))) {
+    for (let i = fa; i <= fb; i += Math.max(1, Math.floor((fb - fa + 1) / 14))) {
       const gr = makeRacket(rep.sport); gr.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.12; o.material.depthWrite = false; } });
       poseRacket(gr, rep.frames[i].q, st.pos[i].hand); st.ghosts.add(gr);
     }
     st.ball.set(st.pos[pi].tip);
+    const mk = $("rp-marks"); mk.hidden = !rep.marks;
+    if (rep.marks) { const bi = rep.marks.reduce((b, m, i) => (m.kmh > rep.marks[b].kmh ? i : b), 0); mk.innerHTML = rep.marks.map((m, i) => `<button class="pill${i === bi ? " lime" : ""}" data-t="${m.t0}">${i + 1} · ${Math.round(m.kmh)}</button>`).join(""); mk.onclick = e => { const b = e.target.closest("button[data-t]"); if (b) { st.t = +b.dataset.t; st.playing = true; $("rp-play").textContent = "⏸"; } }; }
     // camera: behind and to the hitting side, looking at the player
     const side = rep.side;
     sc.camera.position.set(2.6 * side, 2.1, z + 3.2); controls.target.set(0.3 * side, 1.2, z - 0.2); controls.update();
@@ -283,6 +332,7 @@ function initViewer() {
     $("rp-scrub").value = String(Math.round(Math.min(1, st.t / st.dur) * 1000));
     const dtp = (st.t - fr[st.pi].t) / 1000;
     $("rp-info").dataset.t = dtp.toFixed(2);
+    if (st.rep.marks) { const M = st.rep.marks; let mi = 0; for (let k = 0; k < M.length; k++) if (st.t >= M[k].t0) mi = k; if (mi !== st.mi) { st.mi = mi; $("rp-info").textContent = `מכה ${mi + 1} מתוך ${M.length} · ${Math.round(M[mi].kmh)} קמ״ש`; } }
     controls.update(); sc.renderer.render(sc.scene, sc.camera);
   };
   requestAnimationFrame(loop);
