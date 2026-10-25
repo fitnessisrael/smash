@@ -2,6 +2,8 @@ name: Android test build
 on:
   push: { branches: [main] }
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -21,3 +23,10 @@ jobs:
         with:
           name: smash-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish APK as a release (easy download on the phone)
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk smash.apk
+          gh release delete android-test --yes --cleanup-tag || true
+          gh release create android-test smash.apk --title "smash Android test" --notes "Test build. Download smash.apk and install." --prerelease
