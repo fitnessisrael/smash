@@ -28,14 +28,12 @@ jobs:
         run: |
           mkdir -p ~/private_keys
           printf '%s\n' "$ASC_KEY" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
-      - name: Archive
+      - name: Archive (unsigned)
         run: |
           cd ios/App
           xcodebuild archive -workspace App.xcworkspace -scheme App -configuration Release \
             -archivePath $RUNNER_TEMP/App.xcarchive -destination 'generic/platform=iOS' \
-            DEVELOPMENT_TEAM=$TEAM CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0 \
-            -allowProvisioningUpdates -authenticationKeyPath $HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
-            -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID
+            DEVELOPMENT_TEAM=$TEAM CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0
       - name: Export and upload
         run: |
           cat > $RUNNER_TEMP/export.plist <<PL
