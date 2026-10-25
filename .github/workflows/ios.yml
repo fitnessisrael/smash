@@ -1,0 +1,54 @@
+name: iOS build to TestFlight
+on:
+  workflow_dispatch:
+jobs:
+  ios:
+    runs-on: macos-15
+    env:
+      TEAM: 3H4NR4LR48
+      ASC_KEY_ID: DX9CV5KXJ8
+      ASC_ISSUER_ID: 9ff47ebd-a642-4ccb-a296-11aaec452039
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npm run build
+      - run: npx cap add ios
+      - run: npm run assets -- --ios || true
+      - run: npx cap sync ios
+      - name: Info.plist
+        run: |
+          P=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'smash משתמש במצלמה כדי לזהות את היד או המחבט שלך בזמן האימון. התמונה לא נשמרת ולא נשלחת.'" $P
+          /usr/libexec/PlistBuddy -c "Add :NSMotionUsageDescription string 'smash משתמש בחיישני התנועה של הטלפון כדי למדוד את מהירות החבטה.'" $P
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $P
+      - name: API key file
+        env: { ASC_KEY: "${{ secrets.ASC_KEY }}" }
+        run: |
+          mkdir -p ~/private_keys
+          printf '%s\n' "$ASC_KEY" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+      - name: Archive
+        run: |
+          cd ios/App
+          xcodebuild archive -workspace App.xcworkspace -scheme App -configuration Release \
+            -archivePath $RUNNER_TEMP/App.xcarchive -destination 'generic/platform=iOS' \
+            DEVELOPMENT_TEAM=$TEAM CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0 \
+            -allowProvisioningUpdates -authenticationKeyPath $HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID
+      - name: Export and upload
+        run: |
+          cat > $RUNNER_TEMP/export.plist <<PL
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>destination</key><string>upload</string>
+          <key>teamID</key><string>$TEAM</string>
+          <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PL
+          xcodebuild -exportArchive -archivePath $RUNNER_TEMP/App.xcarchive -exportPath $RUNNER_TEMP/out \
+            -exportOptionsPlist $RUNNER_TEMP/export.plist -allowProvisioningUpdates \
+            -authenticationKeyPath $HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID
