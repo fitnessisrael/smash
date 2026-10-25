@@ -1,5 +1,5 @@
 // סמש — phone app
-import { account, PLAN } from "./account.js";
+import { account, PLAN, NATIVE } from "./account.js";
 import { Q, SPORTS, strokeName, store, Racket, SwingDetector, Sound, PlayLock, armPose, demoSwing, $, pressGroup, kmhOf } from "./core.js";
 import { showSummary, fmtTime } from "./summary.js";
 // 3D is loaded on demand so the rest of the app works even if it is slow to load
@@ -19,6 +19,7 @@ if (!account.require()) throw new Error("signup first");
 const me = account.get();
 function paintTrial() {
   const el = $("trial");
+  if (NATIVE) { el.hidden = true; return; }
   if (account.isPro()) { el.className = "chip-trial pro"; el.textContent = "PRO"; }
   else { el.className = "chip-trial"; el.innerHTML = `<b>${account.left()}</b> מתוך ${PLAN.freeTries} ניתוחים חינם`; }
 }
@@ -462,3 +463,5 @@ function leaveRemote() {
 }
 
 renderStrokes(); renderReplays();
+
+$("del-acc")?.addEventListener("click", e => { e.preventDefault(); if (confirm("למחוק את החשבון וכל הנתונים מהמכשיר?")) { account.deleteAll(); location.replace("/start.html"); } });

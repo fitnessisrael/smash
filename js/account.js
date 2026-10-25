@@ -25,10 +25,12 @@ export const account = {
   // Stage 1: called when the payment page sends the buyer back. Stage 2 will confirm the payment on a server first.
   activatePro() { const a = read(); if (!a) return; a.proUntil = Math.max(a.proUntil || 0, Date.now()) + 365 * 864e5; a.paidAt = Date.now(); write(a); },
   signOut() { try { localStorage.removeItem(KEY); } catch (e) {} },
+  // delete the account and everything stored on this device (store rule: in-app account deletion)
+  deleteAll() { try { const a = read(); if (a) localStorage.removeItem("smash:sessions:" + a.email); localStorage.removeItem("smash:replays"); localStorage.removeItem(KEY); } catch (e) {} },
   isPro() { const a = read(); return !!(a && a.proUntil && a.proUntil > Date.now()); },
   left() { const a = read(); if (!a) return 0; return Math.max(0, PLAN.freeTries - (a.used || 0)); },
   // true if the user may start an analysis now
-  canUse() { return this.isPro() || this.left() > 0; },
+  canUse() { return NATIVE || this.isPro() || this.left() > 0; },
   // count one analysis (no-op for Pro)
   use() { const a = read(); if (!a || this.isPro()) return; a.used = (a.used || 0) + 1; write(a); },
   // training history: last 30 days, kept on this device per account

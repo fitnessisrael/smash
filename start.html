@@ -30,7 +30,8 @@
   </form>
 </div>
 <script type="module">
-import { account } from "./js/account.js";
+import { account, NATIVE } from "./js/account.js";
+if (NATIVE) { document.querySelector("h1").innerHTML = "הרשמה וכניסה"; document.querySelector("form p").textContent = "חשבון חדש? מלא פרטים. כבר יש לך חשבון? כתוב את אותו אימייל ותיכנס."; document.querySelector("button.big").textContent = "הרשמה / כניסה"; }
 import { pressGroup, store } from "./js/core.js";
 const next = new URLSearchParams(location.search).get("next") || "/app.html";
 const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/app.html";

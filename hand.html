@@ -92,13 +92,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 <script src="js/a11y.js" type="module"></script>
 <script type="module">
-import { account } from "./js/account.js";
+import { account, NATIVE } from "./js/account.js";
 import { Sound, $, store } from "./js/core.js";
 import { loadModel, poseFromCanvas } from "./js/pose.js";
 import { showSummary, fmtTime } from "./js/summary.js";
 
 if (!account.require()) throw new Error("no account");
-const paint = () => { const t = $("trial"); if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
+const paint = () => { const t = $("trial"); if (NATIVE) { t.hidden = true; return; } if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
 paint();
 
 if (!store.get("v3h", false)) { store.set("sport", "padel"); store.set("v3h", true); }
