@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="he" dir="rtl">
-<head><script>if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())location.replace('/app.html');</script>
+<head><style id="native-intro">html.native .nav,html.native .hero .note,html.native .hero .ctas .ghost,html.native .hero .eyebrow,html.native main>section:not(.hero),html.native footer,html.native .a11y-btn,html.native #a11y-fab{display:none!important}html.native .hero .ctas{margin-top:28px}</style>
+<script>(function(){var n=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform();if(!n)return;document.documentElement.classList.add('native');document.addEventListener('DOMContentLoaded',function(){var b=document.querySelector('.hero .ctas [data-cta]');if(b){b.textContent='התחל להתאמן על החבטות שלך';var go=false;try{go=!!localStorage.getItem('smash:account')}catch(e){}b.setAttribute('href',go?'/app.html':'/start.html?next=/app.html')}})})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">

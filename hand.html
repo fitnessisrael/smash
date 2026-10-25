@@ -147,7 +147,7 @@ $("start").onclick = async () => {
   const v = $("vid"); v.srcObject = stream; await v.play();
   $("stage").classList.toggle("mirror", S.cam === "user");
   show("v-live"); document.body.classList.add("locked");
-  try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch (e) {}
+  try { if (!NATIVE) await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch (e) {}
   try { wl = await navigator.wakeLock.request("screen"); } catch (e) {}
   try { history.pushState({ hand: 1 }, ""); } catch (e) {}
   counted = false; SS = newSession(); resetHands(); LAST = null; BODY = null; for (const k of [LW, RW]) delete WR[k];

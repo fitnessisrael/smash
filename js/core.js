@@ -278,7 +278,7 @@ export class PlayLock {
     if (this.on) return; this.on = true; this.el.hidden = false; document.body.classList.add("locked");
     history.pushState({ lock: 1 }, ""); this.keepAwake();
     const d = document.documentElement;
-    try { if (d.requestFullscreen && !document.fullscreenElement) d.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); } catch (e) {}
+    try { if (!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) && d.requestFullscreen && !document.fullscreenElement) d.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); } catch (e) {}
   }
   release(byUser = false) {
     if (!this.on) return; this.on = false; this.el.hidden = true; document.body.classList.remove("locked");
