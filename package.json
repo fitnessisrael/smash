@@ -2,7 +2,7 @@
   "name": "smash",
   "version": "1.0.0",
   "private": true,
-  "description": "smash – tennis & padel swing trainer (web + iOS + Android)",
+  "description": "smash \u2013 tennis & padel swing trainer (web + iOS + Android)",
   "scripts": {
     "build": "node scripts/build-www.mjs",
     "assets": "capacitor-assets generate --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000'",
@@ -16,6 +16,11 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^7.0.0"
+    "@capacitor/cli": "^7.0.0",
+    "three": "0.160.0",
+    "peerjs": "1.5.4",
+    "@tensorflow/tfjs": "4.17.0",
+    "qrcode-generator": "1.4.4",
+    "@fontsource/rubik": "^5.1.0"
   }
 }
