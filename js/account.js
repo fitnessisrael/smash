@@ -31,6 +31,9 @@ export const account = {
   canUse() { return this.isPro() || this.left() > 0; },
   // count one analysis (no-op for Pro)
   use() { const a = read(); if (!a || this.isPro()) return; a.used = (a.used || 0) + 1; write(a); },
+  // training history: last 30 days, kept on this device per account
+  sessions() { try { const a = read(); const l = JSON.parse(localStorage.getItem("smash:sessions:" + (a ? a.email : ""))) || []; const min = Date.now() - 30 * 864e5; return l.filter(x => x.d > min); } catch (e) { return []; } },
+  addSession(r) { try { const a = read(); if (!a) return; const l = this.sessions(); l.unshift(r); localStorage.setItem("smash:sessions:" + a.email, JSON.stringify(l.slice(0, 300))); } catch (e) {} },
   // send to signup when there is no account
   require(next = location.pathname + location.search) {
     if (!read()) { location.replace("/start.html?next=" + encodeURIComponent(next)); return false; }

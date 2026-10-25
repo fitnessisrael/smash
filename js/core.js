@@ -66,7 +66,7 @@ export const store = {
 // World frame: y up, -z toward the net, x to the player's right.
 export class Racket {
   constructor() {
-    this.q = Q.id(); this.g = [0, 1, 0]; this.gSign = 1; this.last = 0; this.w = 0; this.ok = false; this.listeners = [];
+    this.q = Q.id(); this.g = [0, 1, 0]; this.gSign = 1; this.last = 0; this.w = 0; this.vl = 0; this.ok = false; this.listeners = [];
     this.onMotion = this.onMotion.bind(this);
   }
   static supported() { return typeof window !== "undefined" && "DeviceMotionEvent" in window; }
@@ -110,6 +110,9 @@ export class Racket {
     const dt = this.last ? Math.min(0.05, Math.max(0.004, (now - this.last) / 1000)) : 0.016;
     this.last = now;
     // rotationRate: alpha around z, beta around x, gamma around y (deg/s)
+    // linear push of the phone (m/s, leaky integral of acceleration without gravity): adds to the racket-head speed
+    const al = e.acceleration, aL = al && al.x != null ? Math.hypot(al.x || 0, al.y || 0, al.z || 0) : 0;
+    this.vl = this.vl * Math.exp(-dt / 0.3) + aL * dt;
     const wx = (rr.beta || 0) * Math.PI / 180, wy = (rr.gamma || 0) * Math.PI / 180, wz = (rr.alpha || 0) * Math.PI / 180;
     const w = Math.hypot(wx, wy, wz); this.w = w;
     if (w > 1e-6) this.q = Q.norm(Q.mul(this.q, Q.axisAngle([wx, wy, wz], w * dt)));
@@ -122,10 +125,13 @@ export class Racket {
         if (s > 1e-4) this.q = Q.norm(Q.mul(this.q, Q.axisAngle(axis, Math.min(s, 0.02))));
       }
     }
-    const sample = { t: now, q: this.q, w, dt, wv: [wx, wy, wz] };
+    const sample = { t: now, q: this.q, w, dt, wv: [wx, wy, wz], vl: this.vl };
     for (const f of this.listeners) f(sample);
   }
 }
+
+// racket-head speed (km/h): rotation about the wrist plus the phone's own movement
+export const kmhOf = (s, lever) => (s.w * lever + 0.5 * (s.vl || 0)) * 3.6;
 
 /* ---------- swing detector: fires once per swing at peak racket-head speed ---------- */
 export class SwingDetector {
@@ -133,7 +139,7 @@ export class SwingDetector {
   set(sport, sens = 1) { this.lever = SPORTS[sport].lever; this.thr = SPORTS[sport].thr * sens; }
   // returns hit info or null
   push(s) {
-    const kmh = s.w * this.lever * 3.6; // racket-head speed from angular velocity
+    const kmh = kmhOf(s, this.lever); // racket-head speed from rotation + movement
     let hit = null;
     if (this.armed) {
       if (kmh > this.thr && (!this.peak || kmh >= this.peak.kmh)) this.peak = { kmh, q: s.q, t: s.t, wv: s.wv };
@@ -205,6 +211,7 @@ export class Sound {
   }
   // count-in sounds always use the clips: they are the ones that must never be silent
   tick(high = false) { this.wake(); this.clip(high ? "ding" : "tick", 1); }
+  ok() { this.wake(); this.clip("ok", 1); } // success chime
   buzz() { if (navigator.vibrate) try { navigator.vibrate(25); } catch (e) {} }
 }
 
@@ -229,6 +236,7 @@ function makeClips() {
     tick: synth(0.06, (t) => 0.35 * sq(900, t) * Math.exp(-t * 70)),
     ding: synth(0.6, (t) => 0.8 * Math.sin(2 * Math.PI * 1320 * t) * Math.exp(-t * 6) + 0.2 * Math.sin(2 * Math.PI * 2640 * t) * Math.exp(-t * 9)),
     hitT: hit(520, 2300), hitP: hit(380, 1500),
+    ok: synth(0.55, (t) => 0.5 * Math.sin(2 * Math.PI * 1047 * t) * Math.exp(-t * 9) + (t > 0.09 ? 0.5 * Math.sin(2 * Math.PI * 1568 * (t - 0.09)) * Math.exp(-(t - 0.09) * 6) : 0)),
     bounce: synth(0.1, (t) => 0.7 * Math.sin(2 * Math.PI * (220 - 1300 * t) * t) * Math.exp(-t * 45)),
   };
   const out = {};

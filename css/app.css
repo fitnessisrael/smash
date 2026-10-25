@@ -105,3 +105,6 @@ footer{color:var(--muted);font-size:13px;text-align:center;margin-top:auto}
 .lockcard{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:20px;border:1px solid var(--lime-dim);background:linear-gradient(160deg,#1a1f08,#0b0c08)}
 .lockcard h3{font-size:22px}
 .lockcard p{margin:0;color:var(--muted)}
+
+.bigseg button{padding:20px 6px;font-size:24px;font-weight:800}
+.bigseg{padding:6px;border-radius:16px}

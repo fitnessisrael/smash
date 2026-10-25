@@ -28,40 +28,42 @@
   </div>
 
   <div style="display:flex;flex-direction:column;gap:8px">
-    <span class="label">מה משחקים?</span>
-    <div class="seg" id="sport"><button data-v="tennis">טניס</button><button data-v="padel">פאדל</button></div>
+    <span class="label" style="font-size:16px;color:var(--chalk);font-weight:700">מה משחקים?</span>
+    <div class="seg bigseg" id="sport"><button data-v="padel">פאדל</button><button data-v="tennis">טניס</button></div>
     <span class="label">יד חובטת</span>
     <div class="seg" id="hand"><button data-v="1">ימין</button><button data-v="-1">שמאל</button></div>
   </div>
 
-  <button class="mode hero" id="go-tv">
-    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="7" width="34" height="21" rx="3"/><path d="M14 34h12M20 28v6"/><circle cx="25" cy="17" r="3" fill="currentColor"/></svg>
-    <div><b>משחק מול מסך</b><span>טלוויזיה או טאבלט מראים מגרש וכדור. אתה מכה עם הטלפון.</span></div>
-  </button>
-  <button class="mode" id="go-replay">
+  <button class="mode hero" id="go-replay">
     <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="12" y="3" width="16" height="34" rx="3"/><path d="M6 14c-3 4-3 8 0 12M34 14c3 4 3 8 0 12"/></svg>
-    <div><b>טלפון בלבד</b><span>מכה אחת, ואז הילוך חוזר של התנועה בתלת־ממד.</span></div>
+    <div><b>משחק עם הטלפון בלבד</b><span>הטלפון הוא המחבט. מכה אחת או אימון רצוף, ואז הילוך חוזר.</span></div>
   </button>
   <a class="mode" href="/hand.html" style="text-decoration:none">
     <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="20" cy="9" r="4"/><path d="M20 14v10M20 18l-9 6M20 18l11-8M20 24l-6 12M20 24l6 12"/></svg>
-    <div><b>משחק עם היד</b><span>בלי מחבט. המצלמה מזהה איזו יד חובטת ואיזו חבטה.</span></div>
+    <div><b>משחק עם היד או מחבט</b><span>המצלמה רואה אותך. זורקים עליך כדורים ואתה מחזיר אותם מעל הרשת.</span></div>
   </a>
-  <a class="mode" href="/analyze.html" style="text-decoration:none">
-    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="10" width="24" height="20" rx="3"/><path d="M27 17l10-5v16l-10-5"/></svg>
-    <div><b>ניתוח וידאו <span class="chip-trial pro" style="display:inline-flex;font-size:11px;padding:2px 8px;vertical-align:middle">PRO</span></b><span>מצלמים את עצמך מהצד ומקבלים ניתוח של כל הגוף.</span></div>
-  </a>
+  <button class="mode" id="go-tv">
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="7" width="34" height="21" rx="3"/><path d="M14 34h12M20 28v6"/><circle cx="25" cy="17" r="3" fill="currentColor"/></svg>
+    <div><b>משחק מול מסך</b><span>טלוויזיה או טאבלט מראים מגרש וכדור. אתה מכה עם הטלפון.</span></div>
+  </button>
+
+  <div id="mine-wrap" hidden>
+    <span class="label">האימונים שלי · החודש האחרון</span>
+    <div class="stat" id="mine-tot"></div>
+    <div class="list" id="mine"></div>
+  </div>
 
   <div id="replays-wrap" hidden>
-    <span class="label">הילוכים חוזרים אחרונים</span>
+    <span class="label">ההילוכים החוזרים שלי · החודש האחרון</span>
     <div class="list" id="replays"></div>
   </div>
-  <footer>smash · המהירות היא הערכה לפי סיבוב הטלפון.<br><a href="/terms.html" style="color:inherit">תנאי שימוש</a> · <a href="/terms.html#safety" style="color:inherit">בטיחות</a> · <a href="/privacy.html" style="color:inherit">פרטיות</a> · <a href="/accessibility.html" style="color:inherit">נגישות</a></footer>
+  <footer>smash הוא שירות של כושר ישראל · FITNESS ISRAEL. המהירות היא הערכה.<br><a href="/terms.html" style="color:inherit">תנאי שימוש</a> · <a href="/terms.html#safety" style="color:inherit">בטיחות</a> · <a href="/privacy.html" style="color:inherit">פרטיות</a> · <a href="/accessibility.html" style="color:inherit">נגישות</a></footer>
 </section>
 
 <!-- ============ REPLAY SETUP ============ -->
 <section id="v-setup" class="view" hidden style="flex-direction:column;gap:18px">
   <button class="back" data-back>→ חזרה</button>
-  <h2 class="title">טלפון בלבד</h2>
+  <h2 class="title">משחק עם הטלפון בלבד</h2>
   <span class="label">על איזו חבטה מתאמנים?</span>
   <div class="grid2" id="strokes"></div>
   <span class="label">איך?</span>
@@ -150,6 +152,7 @@
 
 <div class="lock" id="lock" hidden>
   <div class="lock-in">
+    <div id="lk-clock" hidden style="font-family:var(--f-num);font-size:34px;font-weight:800;color:var(--lime);font-variant-numeric:tabular-nums">00:00</div>
     <span class="label" id="lk-mode"></span>
     <div class="pulse" id="lk-pulse"></div>
     <h2 id="lk-t"></h2>
@@ -157,7 +160,7 @@
     <div class="huge" id="lk-speed" hidden>—<small> קמ״ש</small></div>
     <div class="stat" id="lk-stats" hidden><div><b id="lk-a">0</b><span id="lk-a-l">מכות</span></div><div><b id="lk-b">0</b><span id="lk-b-l">רצף</span></div><div><b id="lk-c">0</b><span>שיא קמ״ש</span></div></div>
   </div>
-  <button class="hold" id="lk-hold"><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="lk-hold-t">החזק 2 שניות כדי לעצור</span></button>
+  <button class="hold" id="lk-hold"><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="lk-hold-t">סיום · החזק 2 שניות</span></button>
 </div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>

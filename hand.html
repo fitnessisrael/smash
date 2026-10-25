@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>smash · משחק עם היד</title>
-<meta name="description" content="עומדים מול המצלמה, מחזיקים מחבט דמיוני, והמצלמה מזהה איזו יד חובטת ואיזו חבטה.">
+<title>smash · משחק עם היד או מחבט</title>
+<meta name="description" content="עומדים מול המצלמה, עם היד או עם המחבט האישי. זורקים עליך כדורים ואתה מחזיר אותם מעל הרשת.">
 <link rel="icon" href="icon-64.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
@@ -14,13 +14,10 @@
   .stage{position:relative;width:100%;aspect-ratio:3/4;max-height:68vh;background:#0a0b08;border:1px solid var(--line);border-radius:18px;overflow:hidden}
   .stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .stage.mirror video,.stage.mirror canvas{transform:scaleX(-1)}
-  .big-say{position:absolute;inset:auto 0 14% 0;text-align:center;font-size:44px;font-weight:900;color:var(--lime);text-shadow:0 2px 14px #000;pointer-events:none}
-  .tgt{position:absolute;top:12px;inset-inline:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
-  .tgt span{background:#000a;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:800;font-size:15px}
-  .tgt b{color:var(--lime)}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .big-say{position:absolute;inset:auto 0 30% 0;text-align:center;font-size:clamp(40px,8vw,110px);font-weight:900;color:var(--lime);text-shadow:0 2px 14px #000;pointer-events:none}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .stats div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
-  .stats b{display:block;font-size:24px;color:var(--lime)}
+  .stats b{display:block;font-size:26px;color:var(--lime);font-variant-numeric:tabular-nums}
   .stats span{font-size:12px;color:var(--muted)}
   .tips{margin:0;padding-inline-start:20px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:6px}
   .seg button{white-space:nowrap}
@@ -28,29 +25,34 @@
   #err{color:var(--bad);font-weight:700}
   #v-live{position:fixed;inset:0;z-index:20;background:#000}
   #v-live .stage{position:absolute;inset:0;max-height:none;aspect-ratio:auto;border:0;border-radius:0}
-  #v-live .stats{position:absolute;z-index:3;bottom:max(10px,env(safe-area-inset-bottom));inset-inline:12px;pointer-events:none;max-width:560px;margin:0 auto}
-  #v-live .stats div{background:#000a;padding:6px 4px}
-  #v-live .stats b{font-size:20px}
-  #last{position:absolute;z-index:3;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 70px);inset-inline:0;pointer-events:none;text-shadow:0 1px 8px #000;color:var(--chalk)!important}
-  #stop{position:absolute;z-index:4;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:auto;padding:8px 24px;font-size:15px;background:#000a}
-  .tgt{top:max(12px,env(safe-area-inset-top))}
-  .tgt span{font-size:clamp(15px,2.2vw,22px)}
-  .big-say{font-size:clamp(44px,9vw,120px)}
+  #v-live .bar{position:absolute;z-index:4;inset-inline:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 12px}
+  #v-live .stats{width:min(520px,100%)}
+  #v-live .stats div{background:#000b}
+  #end{width:min(420px,92%);font-size:22px;padding:16px;box-shadow:0 6px 24px #000a}
+  #last{position:absolute;z-index:3;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 150px);inset-inline:0;text-align:center;pointer-events:none;text-shadow:0 1px 8px #000;color:var(--chalk);font-weight:700;font-size:clamp(15px,2.4vw,24px)}
+  .tgt{position:absolute;top:max(12px,env(safe-area-inset-top));inset-inline:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+  .tgt span{background:#000a;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:800;font-size:clamp(15px,2.2vw,22px)}
+  .tgt b{color:var(--lime)}
 </style>
 </head>
 <body>
 <div class="wrap" id="content" style="display:flex;flex-direction:column;gap:16px">
   <div class="appbar">
-    <a href="/app.html" aria-label="חזרה"><img class="logo" src="logo.png" alt="smash"></a>
+    <a href="/app.html" aria-label="לתפריט הראשי"><img class="logo" src="logo.png" alt="smash"></a>
     <a class="chip-trial" id="trial" href="/pro.html"></a>
   </div>
 
   <section id="v-setup" style="display:flex;flex-direction:column;gap:16px">
-    <h1 style="font-size:32px;line-height:1.1">משחק עם היד</h1>
-    <p style="margin:0;color:var(--muted)">בלי מחבט ובלי טלפון ביד. עומדים מול המצלמה, חובטים באוויר, והמצלמה מזהה איזו יד חובטת ואיזו חבטה זו.</p>
+    <a class="back" href="/app.html" style="text-decoration:none">→ חזרה לתפריט</a>
+    <h1 style="font-size:32px;line-height:1.1">משחק עם היד או מחבט</h1>
+    <p style="margin:0;color:var(--muted)">עומדים מול המצלמה, עם היד או עם המחבט האישי שלך. המצלמה מזהה את היד ואת המחבט, והכדורים מגיעים אליך.</p>
+    <span class="label" style="font-size:16px;color:var(--chalk);font-weight:700">מה משחקים?</span>
+    <div class="seg bigseg" id="sport"><button data-v="padel">פאדל</button><button data-v="tennis">טניס</button></div>
+    <span class="label">עם מה חובטים?</span>
+    <div class="seg" id="tool"><button data-v="hand">יד בלבד</button><button data-v="racket">מחבט אישי</button></div>
     <span class="label">מצב</span>
     <div class="seg" id="mode"><button data-v="balls" aria-pressed="true">כדורים</button><button data-v="free" aria-pressed="false">חופשי</button><button data-v="challenge" aria-pressed="false">אתגר</button></div>
-    <p class="note" id="mode-d">זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.</p>
+    <p class="note" id="mode-d">זורקים עליך כדורים. נוגעים בהם והם עפים חזרה מעל הרשת, ואתה רואה לאן הם נוחתים.</p>
     <div id="ballopts" style="display:flex;flex-direction:column;gap:8px">
       <span class="label">יד חובטת</span>
       <div class="seg" id="hand"><button data-v="r" aria-pressed="true">ימין</button><button data-v="l" aria-pressed="false">שמאל</button></div>
@@ -65,11 +67,11 @@
     <div class="seg" id="cam"><button data-v="user" aria-pressed="true">קדמית</button><button data-v="environment" aria-pressed="false">אחורית</button></div>
     <ul class="tips">
       <li>עמוד מול המצלמה, במרחק 2–3 מטר, כשרואים אותך מהראש עד הברכיים.</li>
-      <li>שים את המכשיר יציב: על חצובה, על שולחן או נשען על קיר.</li>
+      <li>שים את המכשיר יציב, מומלץ אופקי: על חצובה, על שולחן או נשען על קיר.</li>
       <li>תאורה טובה, ובגדים שנבדלים מהרקע.</li>
     </ul>
     <button class="big" id="start">הפעל מצלמה</button>
-    <p class="note">הווידאו לא יוצא מהמכשיר. הניתוח נעשה כולו אצלך בדפדפן.</p>
+    <p class="note">הווידאו לא יוצא מהמכשיר. הניתוח נעשה כולו אצלך בדפדפן. המהירות היא הערכה.</p>
     <div id="err" hidden></div>
   </section>
 
@@ -80,34 +82,38 @@
       <div class="tgt"><span id="t-left">—</span><span id="t-score"></span></div>
       <div class="big-say" id="say"></div>
     </div>
-    <div class="stats">
-      <div><b id="n-all">0</b><span>חבטות</span></div>
-      <div><b id="n-r">0</b><span>ימין</span></div>
-      <div><b id="n-l">0</b><span>שמאל</span></div>
-      <div><b id="n-best">0</b><span>עוצמה שיא</span></div>
+    <div id="last"></div>
+    <div class="bar">
+      <div class="stats">
+        <div><b id="n-all">0</b><span>חבטות</span></div>
+        <div><b id="s-speed">—</b><span>מהירות (קמ״ש)</span></div>
+        <div><b id="t-time">00:00</b><span>זמן</span></div>
+      </div>
+      <button class="big" id="end">סיום וסיכום</button>
     </div>
-    <div id="last" style="text-align:center;color:var(--muted);min-height:24px"></div>
-    <button class="big ghost" id="stop">סיום</button>
   </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 <script src="js/a11y.js" type="module"></script>
 <script type="module">
 import { account } from "./js/account.js";
-import { Sound, $ } from "./js/core.js";
+import { Sound, $, store } from "./js/core.js";
 import { loadModel, poseFromCanvas } from "./js/pose.js";
+import { showSummary, fmtTime } from "./js/summary.js";
 
 if (!account.require()) throw new Error("no account");
 const paint = () => { const t = $("trial"); if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
 paint();
 
-const S = { mode: "balls", which: "all", cam: "user", hand: "r", ball: "fh" };
-for (const id of ["mode", "which", "cam", "hand", "ball"]) {
+const S = { mode: "balls", which: "all", cam: "user", hand: "r", ball: "fh", sport: store.get("sport", "padel"), tool: store.get("tool", "hand") };
+const setPressed = (id, v) => { for (const x of $(id).children) x.setAttribute("aria-pressed", String(x.dataset.v === v)); };
+for (const id of ["mode", "which", "cam", "hand", "ball", "sport", "tool"]) {
+  setPressed(id, S[id]);
   $(id).addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
-    S[id] = b.dataset.v;
-    for (const x of $(id).children) x.setAttribute("aria-pressed", String(x === b));
-    if (id === "mode") { $("ballopts").style.display = S.mode === "balls" ? "flex" : "none"; $("chal").style.display = S.mode === "challenge" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם עם היד והם עפים חזרה מעל הרשת.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
+    S[id] = b.dataset.v; setPressed(id, S[id]);
+    if (id === "sport" || id === "tool") store.set(id, S[id]);
+    if (id === "mode") { $("ballopts").style.display = S.mode === "balls" ? "flex" : "none"; $("chal").style.display = S.mode === "challenge" ? "flex" : "none"; $("mode-d").textContent = { balls: "זורקים עליך כדורים. נוגעים בהם והם עפים חזרה מעל הרשת, ואתה רואה לאן הם נוחתים.", free: "חובטים מתי שרוצים והמצלמה אומרת איזו יד ואיזו חבטה.", challenge: "האפליקציה קוראת חבטה, ואתה חובט אותה אחרי הצליל." }[S.mode]; }
   });
 }
 const sound = new Sound();
@@ -118,15 +124,17 @@ const NAMES = { fh: "פורהנד", bh: "בקהנד", sm: "סמש" };
 // MoveNet keypoint indexes (anatomical left/right)
 const LS = 5, RS = 6, LW = 9, RW = 10, LE = 7, RE = 8;
 
-let stream = null, running = false, wl = null, counted = false;
+let stream = null, running = false, wl = null, counted = false, clockT = 0;
 const cv = document.createElement("canvas"); cv.width = cv.height = 192;
 const cx = cv.getContext("2d", { willReadFrequently: true });
 
-const H = {}; // per-hand tracker
-function resetHands() {
-  for (const k of [LW, RW]) H[k] = { p: null, t: 0, v: 0, in: false, peak: 0, start: null, startT: 0, last: 0 };
-}
-const G = { all: 0, r: 0, l: 0, best: 0, score: 0, round: 0, target: null, window: 0, phase: "idle", timer: 0 };
+const H = {}; // per-hand swing tracker (free / challenge modes)
+function resetHands() { for (const k of [LW, RW]) H[k] = { p: null, t: 0, v: 0, in: false, peak: 0, start: null, startT: 0, last: 0 }; }
+const G = { phase: "idle", target: null, timer: 0 };
+// one session = everything between "start" and "end"
+let SS = null;
+const newSession = () => ({ t0: performance.now(), speeds: [], contacts: 0, over: 0, inCourt: 0, outs: 0, miss: 0, right: 0, left: 0, dirs: { "ימינה": 0, "באמצע": 0, "שמאלה": 0 }, best: 0, score: 0 });
+const kmhFrom = sp => Math.round(sp * 0.4 * 3.6 * (S.tool === "racket" ? 1.6 : 2.2)); // shoulder-widths/s → km/h (estimate)
 
 $("start").onclick = async () => {
   sound.unlock(); // inside the tap, so iPhone plays sound
@@ -138,31 +146,44 @@ $("start").onclick = async () => {
   } catch (e) {
     err("אין גישה למצלמה. אשר את הרשאת המצלמה בדפדפן ונסה שוב."); reset(); return;
   }
-  try {
-    await loadModel();
-  } catch (e) {
-    err("טעינת מנוע הראייה נכשלה. בדוק חיבור לאינטרנט ונסה שוב."); stopCam(); reset(); return;
-  }
+  try { await loadModel(); } catch (e) { err("טעינת מנוע הראייה נכשלה. בדוק חיבור לאינטרנט ונסה שוב."); stopCam(); reset(); return; }
   const v = $("vid"); v.srcObject = stream; await v.play();
   $("stage").classList.toggle("mirror", S.cam === "user");
   show("v-live"); document.body.classList.add("locked");
   try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch (e) {}
   try { wl = await navigator.wakeLock.request("screen"); } catch (e) {}
-  counted = false; Object.assign(G, { all: 0, r: 0, l: 0, best: 0, score: 0, round: 0, target: null, phase: "idle" });
-  resetHands(); LAST = null; BODY = null; B.list = []; B.n = B.ret = B.streak = 0; B.r = B.l = 0; B.next = performance.now() + 1200; B.timers.forEach(clearTimeout); B.timers = []; B.prepping = false; B.alt = 0;
+  try { history.pushState({ hand: 1 }, ""); } catch (e) {}
+  counted = false; SS = newSession(); resetHands(); LAST = null; BODY = null; for (const k of [LW, RW]) delete WR[k];
+  B.list = []; B.n = B.streak = 0; B.rings = []; B.alt = 0; B.timers.forEach(clearTimeout); B.timers = []; B.prepping = false; B.next = performance.now() + 1200;
+  $("last").textContent = ""; $("s-speed").textContent = "—"; $("t-score").textContent = ""; $("t-left").textContent = "—";
+  clearInterval(clockT); clockT = setInterval(() => { $("t-time").textContent = fmtTime(performance.now() - SS.t0); }, 250);
   paintStats(); running = true; loop(); render();
   if (S.mode === "challenge") nextRound(1200); else if (S.mode === "free") say("חבוט!", 1200); else say("היכון!", 1200);
 };
 function reset() { $("start").disabled = false; $("start").textContent = "הפעל מצלמה"; }
-function stopCam() { running = false; document.body.classList.remove("locked"); B.timers.forEach(clearTimeout); B.timers = []; B.prepping = false; try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} clearTimeout(G.timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; try { wl && wl.release(); } catch (e) {} }
-$("stop").onclick = () => { stopCam(); show("v-setup"); reset(); };
-document.addEventListener("visibilitychange", () => { if (document.hidden && running) { stopCam(); show("v-setup"); reset(); } });
+function stopCam() { running = false; clearInterval(clockT); document.body.classList.remove("locked"); clearTimeout(G.timer); B.timers.forEach(clearTimeout); B.timers = []; B.prepping = false; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; try { wl && wl.release(); } catch (e) {} try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
+
+// the end of a session: stop, show the summary, save it
+async function finish(fromBack) {
+  if (!running) return;
+  const ms = performance.now() - SS.t0, sp = SS.speeds.slice(), ss = SS;
+  stopCam();
+  if (!fromBack) try { if (history.state && history.state.hand) history.back(); } catch (e) {}
+  show("v-setup"); reset();
+  const rows = S.mode === "balls"
+    ? [["מעל הרשת", ss.over], ["בתוך המגרש", ss.inCourt], ["החוצה", ss.outs], ["פספוסים", ss.miss], ["כיוון: ימינה / באמצע / שמאלה", `${ss.dirs["ימינה"]} / ${ss.dirs["באמצע"]} / ${ss.dirs["שמאלה"]}`], ["יד ימין / שמאל", `${ss.right} / ${ss.left}`]]
+    : S.mode === "challenge" ? [["נקודות", ss.score], ["יד ימין / שמאל", `${ss.right} / ${ss.left}`]] : [["יד ימין / שמאל", `${ss.right} / ${ss.left}`]];
+  const act = await showSummary({ mode: "עם " + (S.tool === "racket" ? "מחבט" : "היד") + " · " + (S.sport === "padel" ? "פאדל" : "טניס"), sport: S.sport, ms, speeds: sp, n: ss.contacts, rows,
+    actions: [{ id: "again", label: "אימון נוסף", primary: true }, { id: "menu", label: "חזרה לתפריט" }] });
+  if (act === "menu") location.href = "/app.html";
+}
+$("end").onclick = () => finish(false);
+addEventListener("popstate", () => { if (running) finish(true); });
+document.addEventListener("visibilitychange", () => { if (document.hidden && running) finish(false); });
 
 function say(t, ms = 900) { const s = $("say"); s.textContent = t; clearTimeout(say.t); say.t = setTimeout(() => s.textContent = "", ms); }
-function paintStats() {
-  $("n-all").textContent = G.all; $("n-r").textContent = G.r; $("n-l").textContent = G.l; $("n-best").textContent = G.best;
-  $("t-score").textContent = S.mode === "challenge" ? "נקודות: " + G.score : "";
-}
+function paintStats() { $("n-all").textContent = SS ? SS.contacts : 0; }
+function noteSpeed(kmh) { SS.speeds.push(kmh); SS.best = Math.max(SS.best, kmh); $("s-speed").textContent = kmh; }
 
 /* ---------- challenge: tick, tick, ding, then swing ---------- */
 function nextRound(delay = 1500) {
@@ -172,13 +193,13 @@ function nextRound(delay = 1500) {
   G.timer = setTimeout(() => {
     $("t-left").textContent = "חבטה: " + NAMES[tgt]; say(NAMES[tgt], 2400);
     sound.tick(); G.timer = setTimeout(() => { sound.tick(); G.timer = setTimeout(() => {
-      sound.tick(true); G.target = tgt; G.phase = "go"; G.window = performance.now() + 2600;
-      G.timer = setTimeout(() => { if (G.phase === "go") { G.phase = "idle"; say("פספוס", 900); nextRound(); } }, 2700);
+      sound.tick(true); G.target = tgt; G.phase = "go";
+      G.timer = setTimeout(() => { if (G.phase === "go") { G.phase = "idle"; SS.miss++; say("פספוס", 900); nextRound(); } }, 2900);
     }, 650); }, 650);
   }, delay);
 }
 
-/* ---------- swing detection ---------- */
+/* ---------- swing detection (free + challenge) ---------- */
 function onSwing(wrist, peak, dx, dy, startAboveShoulder, u) {
   if (S.mode === "balls") return;
   const right = wrist === RW;
@@ -186,15 +207,15 @@ function onSwing(wrist, peak, dx, dy, startAboveShoulder, u) {
   const across = right ? lateral > 0 : lateral < 0;
   let kind = across ? "fh" : "bh";
   if (startAboveShoulder && dy > Math.abs(lateral)) kind = "sm";
-  const power = Math.max(1, Math.min(100, Math.round(peak / 14 * 100)));
+  const kmh = kmhFrom(peak);
   if (!counted) { account.use(); counted = true; paint(); }
-  G.all++; right ? G.r++ : G.l++; G.best = Math.max(G.best, power);
-  let msg = (right ? "יד ימין" : "יד שמאל") + " · " + NAMES[kind] + " · עוצמה " + power;
+  SS.contacts++; right ? SS.right++ : SS.left++; noteSpeed(kmh);
+  const msg = (right ? "יד ימין" : "יד שמאל") + " · " + NAMES[kind] + " · " + kmh + " קמ״ש";
   if (S.mode === "challenge" && G.phase === "go") {
     clearTimeout(G.timer);
-    if (kind === G.target) { G.score++; say("בול!", 900); sound.hit("tennis", power / 100); } else { say("לא " + NAMES[kind], 1000); sound.clip("bounce", 0.8); }
-    G.phase = "idle"; nextRound();
-  } else if (S.mode === "free") { sound.hit("tennis", power / 100); say(NAMES[kind], 700); }
+    if (kind === G.target) { SS.score++; say("בול!", 900); sound.ok(); } else say("זו הייתה " + NAMES[kind], 1000);
+    G.phase = "idle"; $("t-score").textContent = "נקודות: " + SS.score; nextRound();
+  } else if (S.mode === "free") { sound.hit(S.sport, kmh / 100); say(NAMES[kind], 700); }
   $("last").textContent = msg; paintStats();
 }
 
@@ -264,9 +285,21 @@ function geo() {
 function scr(i, g) { const { k, ox, oy, sc } = LAST; return { x: ((k[i].x * 192 - ox) / sc) * g.s + g.dx, y: ((k[i].y * 192 - oy) / sc) * g.s + g.dy, ok: k[i].s > 0.25 }; }
 function updateWrists(now) {
   const g = geo(); if (!g) return;
+  const a = scr(LS, g), b = scr(RS, g);
+  if (a.ok && b.ok) {
+    const n = { ls: a, rs: b, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, sw: Math.hypot(a.x - b.x, a.y - b.y) };
+    if (BODY) for (const f of ["x", "y", "sw"]) n[f] = BODY[f] * 0.8 + n[f] * 0.2;
+    BODY = n;
+  }
   for (const id of [LW, RW]) {
-    const p = scr(id, g), w = WR[id] || (WR[id] = {});
+    const p = scr(id, g), w = WR[id] || (WR[id] = { hist: [] });
     if (!p.ok) { w.ok = false; continue; }
+    w.wx = p.x; w.wy = p.y;
+    if (S.tool === "racket") { // racket head: continues the forearm beyond the wrist
+      const e = scr(id === LW ? LE : RE, g), sh = scr(id === LW ? LS : RS, g);
+      const ref = e.ok ? e : sh; let dx = p.x - ref.x, dy = p.y - ref.y; const L = Math.hypot(dx, dy) || 1;
+      const reach = (BODY ? BODY.sw : g.cw * 0.2) * 1.15; p.x += dx / L * reach; p.y += dy / L * reach;
+    }
     if (w.ok) {
       p.x = w.x * 0.25 + p.x * 0.75; p.y = w.y * 0.25 + p.y * 0.75;
       const dt = Math.max(0.016, (now - w.t) / 1000);
@@ -274,31 +307,32 @@ function updateWrists(now) {
       w.px = w.x; w.py = w.y;
     } else { w.vx = w.vy = 0; w.px = p.x; w.py = p.y; }
     w.x = p.x; w.y = p.y; w.t = now; w.ok = true;
-  }
-  const a = scr(LS, g), b = scr(RS, g);
-  if (a.ok && b.ok) {
-    const n = { ls: a, rs: b, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, sw: Math.hypot(a.x - b.x, a.y - b.y) };
-    if (BODY) for (const f of ["x", "y", "sw"]) n[f] = BODY[f] * 0.8 + n[f] * 0.2;
-    BODY = n;
+    w.hist.push({ x: w.x, y: w.y, vx: w.vx, vy: w.vy, t: now });
+    while (w.hist.length && now - w.hist[0].t > 320) w.hist.shift();
   }
 }
 
-const B = { timers: [], prepping: false, alt: 0, list: [], next: 0, n: 0, ret: 0, streak: 0, r: 0, l: 0, rings: [] };
-const netY = H => H * 0.3;
+/* ---------- court geometry (far side of the net, seen from the player) ---------- */
+const netY = H => H * 0.42, topY = H => H * 0.08;
+const hwNet = W => W * 0.3, hwBase = W => W * 0.2;
+const hwAt = (W, d) => hwNet(W) + (hwBase(W) - hwNet(W)) * Math.min(1, d);
+const yAt = (H, d) => netY(H) - d * (netY(H) - topY(H));
+
+const B = { timers: [], prepping: false, alt: 0, kind: "fh", list: [], next: 0, n: 0, streak: 0, rings: [] };
 function launch(g) {
-  const W = g.cw, H = g.ch, body = BODY || { x: W / 2, y: H * 0.6, sw: W * 0.2, ls: { x: W * 0.6, y: H * 0.55 }, rs: { x: W * 0.4, y: H * 0.55 } };
-  const kind = B.kind;
+  const W = g.cw, Hc = g.ch, body = BODY || { x: W / 2, y: Hc * 0.55, sw: W * 0.2, ls: { x: W * 0.6, y: Hc * 0.5 }, rs: { x: W * 0.4, y: Hc * 0.5 } };
   const hs = S.hand === "r" ? body.rs : body.ls, os = S.hand === "r" ? body.ls : body.rs;
   const out = Math.sign(hs.x - os.x) || 1;
   // forehand: ball on the hitting-hand side. backhand: across the body.
-  const tx = clamp(kind === "fh" ? hs.x + out * body.sw * 0.45 : os.x - out * body.sw * 0.25, W * 0.1, W * 0.9);
-  const ty = clamp(body.y + body.sw * 0.6, H * 0.45, H * 0.88);
-  const x0 = tx * 0.5 + W * 0.25, y0 = netY(H) - H * 0.02;
-  B.list.push({ st: "in", t0: performance.now(), dur: 1500, x0, y0, tx, ty, r0: W * 0.014, r1: W * 0.05, x: x0, y: y0, r: W * 0.014 });
+  const tx = clamp(B.kind === "fh" ? hs.x + out * body.sw * 0.45 : os.x - out * body.sw * 0.25, W * 0.1, W * 0.9);
+  const ty = clamp(body.y + body.sw * 0.6, netY(Hc) + Hc * 0.12, Hc * 0.9);
+  const x0 = clamp(tx * 0.5 + W * 0.25, W / 2 - hwNet(W) * 0.8, W / 2 + hwNet(W) * 0.8), y0 = netY(Hc) - Hc * 0.02;
+  const R = Math.min(W, Hc * 1.4);
+  B.list.push({ st: "in", t0: performance.now(), dur: 1500, x0, y0, tx, ty, r0: R * 0.014, r1: R * 0.05, x: x0, y: y0, r: R * 0.014 });
   B.n++; sound.tick(true);
   if (!counted) { account.use(); counted = true; paint(); }
 }
-function prepare(g) {
+function prepare() {
   B.prepping = true;
   B.kind = S.ball === "mix" ? (B.alt++ % 2 ? "bh" : "fh") : S.ball;
   $("t-left").textContent = "כדור " + (B.n + 1) + " · " + NAMES[B.kind];
@@ -306,74 +340,114 @@ function prepare(g) {
   B.timers.push(setTimeout(() => sound.tick(), 550));
   B.timers.push(setTimeout(() => { B.prepping = false; if (running) { const gg = geo(); if (gg) launch(gg); } }, 1100));
 }
-function hitBall(b, id, speed, w, g, now) {
-  const W = g.cw, H = g.ch, power = clamp(Math.round(speed / 14 * 100), 5, 100);
-  const lx = b.x + clamp(w.vx * 0.25, -W * 0.4, W * 0.4);
-  const out = lx < W * 0.04 || lx > W * 0.96;
-  b.st = "back"; b.t1 = now; b.dur = clamp(1.1 - power / 100 * 0.5, 0.55, 1.1) * 1000;
-  b.fx = b.x; b.fy = b.y; b.fr = b.r; b.lx = clamp(lx, -W * 0.05, W * 1.05); b.ly = netY(H) - H * 0.04; b.arc = H * (0.1 + 0.1 * (1 - power / 100)); b.out = out; b.hand = id; b.power = power;
-  sound.hit("tennis", power / 100); B.rings.push({ x: b.x, y: b.y, t: now });
-  flashHand = { id, until: now + 400 };
-  $("last").textContent = (id === RW ? "יד ימין" : "יד שמאל") + " · עוצמה " + power;
+function ptSeg(px, py, ax, ay, bx, by) {
+  const sx = bx - ax, sy = by - ay, L2 = sx * sx + sy * sy; if (!L2) return Math.hypot(px - ax, py - ay);
+  const t = clamp(((px - ax) * sx + (py - ay) * sy) / L2, 0, 1); return Math.hypot(px - (ax + sx * t), py - (ay + sy * t));
+}
+// forgiving contact: any pass of the hand / racket head near the ball in the last 0.3 s counts
+function contact(b, w, sw, hr, now) {
+  const Hs = w.hist; let best = null;
+  const test = (a, c, vx, vy) => {
+    if (ptSeg(b.x, b.y, a.x, a.y, c.x, c.y) >= b.r + hr) return;
+    const sp = Math.hypot(vx, vy) / sw; if (sp > 1.4 && (!best || sp > best.sp)) best = { sp, vx, vy };
+  };
+  for (let i = 1; i < Hs.length; i++) test(Hs[i - 1], Hs[i], Hs[i].vx, Hs[i].vy);
+  const ext = Math.min(0.08, (now - w.t) / 1000 + 0.04);
+  test({ x: w.x, y: w.y }, { x: w.x + w.vx * ext, y: w.y + w.vy * ext }, w.vx, w.vy);
+  return best;
+}
+function hitBall(b, id, c, g, now) {
+  const W = g.cw, Hc = g.ch, v = Math.hypot(c.vx, c.vy) || 1, ux = c.vx / v, uy = c.vy / v;
+  const full = S.tool === "racket" ? 22 : 14, power = clamp(Math.round(c.sp / full * 100), 5, 100), kmh = kmhFrom(c.sp);
+  const cxm = W / 2, hw = hwNet(W);
+  const lx = cxm + (b.x - cxm) * 0.3 + ux * hw * 0.9;           // sideways: the way the hand moved
+  const d = clamp(0.25 + 0.65 * power / 100 + 0.25 * -uy, 0.2, 1.3); // depth: power, and an upward swing carries it deeper
+  const net = power < 8;
+  const inside = !net && d <= 1.02 && Math.abs(lx - cxm) <= hwAt(W, d);
+  Object.assign(b, { st: "back", t1: now, dur: clamp(1.1 - power / 100 * 0.5, 0.55, 1.1) * 1000, fx: b.x, fy: b.y, fr: b.r, lx, ly: net ? netY(Hc) + Hc * 0.012 : yAt(Hc, Math.min(d, 1.12)), arc: net ? 0 : Hc * (0.1 + 0.08 * (1 - power / 100)), net, inside, hand: id, crossed: false,
+    dirT: lx < cxm - hw * 0.12 ? "ימינה" : lx > cxm + hw * 0.12 ? "שמאלה" : "באמצע", depT: d > 1.02 ? "ארוך" : d < 0.45 ? "קצר" : d > 0.8 ? "עמוק" : "באמצע המגרש", kmh });
+  SS.contacts++; id === RW ? SS.right++ : SS.left++; noteSpeed(kmh); SS.dirs[b.dirT]++;
+  sound.hit(S.sport, power / 100); B.rings.push({ x: b.x, y: b.y, t: now }); flashHand = { id, until: now + 400 };
+  $("last").textContent = (id === RW ? "יד ימין" : "יד שמאל") + " · " + kmh + " קמ״ש"; paintStats();
 }
 function gameStep(g, now) {
   if (S.mode !== "balls") return;
-  if (!B.list.length && !B.prepping && now >= B.next) prepare(g);
-  const sw = BODY ? BODY.sw : g.cw * 0.25;
+  if (!B.list.length && !B.prepping && now >= B.next) prepare();
+  const sw = BODY ? BODY.sw : g.cw * 0.2, hr = sw * (S.tool === "racket" ? 0.5 : 0.42);
   for (const b of B.list) {
     if (b.st === "in") {
-      const u = (now - b.t0) / b.dur, e = Math.pow(Math.max(0, u), 1.3);
-      b.x = b.x0 + (b.tx - b.x0) * e; b.y = b.y0 + (b.ty - b.y0) * e - Math.sin(Math.PI * Math.min(1, e)) * g.ch * 0.05; b.r = Math.min(b.r1 * 1.25, b.r0 + (b.r1 - b.r0) * e);
-      if (u > 0.3) for (const id of [LW, RW]) {
+      const u = (now - b.t0) / b.dur, e = u <= 1 ? Math.pow(Math.max(0, u), 1.3) : 1 + (u - 1) * 0.25; // after the target the ball "hangs" so a late swing still counts
+      b.x = b.x0 + (b.tx - b.x0) * e; b.y = b.y0 + (b.ty - b.y0) * e - Math.sin(Math.PI * Math.min(1, e)) * g.ch * 0.05; b.r = Math.min(b.r1 * 1.25, b.r0 + (b.r1 - b.r0) * Math.min(1.1, e));
+      if (u > 0.25) for (const id of [LW, RW]) {
         const w = WR[id]; if (!w || !w.ok || b.st !== "in") continue;
-        const ext = Math.min(0.08, (now - w.t) / 1000 + 0.04), ex = w.x + w.vx * ext, ey = w.y + w.vy * ext;
-        const sx = ex - w.px, sy = ey - w.py, L2 = sx * sx + sy * sy || 1;
-        const t = clamp(((b.x - w.px) * sx + (b.y - w.py) * sy) / L2, 0, 1);
-        const d = Math.hypot(b.x - (w.px + sx * t), b.y - (w.py + sy * t));
-        const speed = Math.hypot(w.vx, w.vy) / sw;
-        if (d < b.r + g.cw * 0.055 && speed > 2.0) hitBall(b, id, speed, w, g, now);
+        const c = contact(b, w, sw, hr, now); if (c) hitBall(b, id, c, g, now);
       }
-      if (b.st === "in" && u > 1.3) { b.st = "gone"; B.streak = 0; say("פספוס", 700); sound.clip("bounce", 0.5); }
+      if (b.st === "in" && u > 1.7) { b.st = "gone"; B.streak = 0; SS.miss++; say("פספוס", 700); $("t-score").textContent = "רצף: 0"; }
     } else if (b.st === "back") {
       const u = clamp((now - b.t1) / b.dur, 0, 1);
-      b.x = b.fx + (b.lx - b.fx) * u; b.y = b.fy + (b.ly - b.fy) * u - Math.sin(Math.PI * u) * b.arc; b.r = b.fr + (b.r0 * 0.8 - b.fr) * u;
-      if (u >= 1) {
-        b.st = "gone";
-        if (b.out) { B.streak = 0; say("החוצה", 800); sound.clip("bounce", 0.6); }
-        else { B.ret++; B.streak++; b.hand === RW ? B.r++ : B.l++; G.best = Math.max(G.best, b.power); say(B.streak > 2 ? "רצף " + B.streak + "!" : "מעל הרשת!", 800); }
-        G.all = B.ret; G.r = B.r; G.l = B.l; paintStats(); $("t-score").textContent = "רצף: " + B.streak;
+      b.x = b.fx + (b.lx - b.fx) * u; b.y = b.fy + (b.ly - b.fy) * u - Math.sin(Math.PI * u) * b.arc; b.r = b.fr + (Math.min(b.r0 * 0.9, b.fr) - b.fr) * u;
+      if (!b.crossed && !b.net && b.y <= netY(g.ch)) { // over the net: success sound, nothing else
+        b.crossed = true; SS.over++; B.streak++; sound.ok(); say(B.streak > 2 ? "רצף " + B.streak + "!" : "מעל הרשת!", 900); $("t-score").textContent = "רצף: " + B.streak;
       }
-    }
+      if (u >= 1) {
+        b.st = "land"; b.t2 = now;
+        if (b.net) { B.streak = 0; SS.outs++; $("last").textContent += " · ברשת"; $("t-score").textContent = "רצף: 0"; }
+        else { b.inside ? SS.inCourt++ : SS.outs++; $("last").textContent += " · " + (b.inside ? "בתוך המגרש" : "החוצה") + " · " + b.dirT + " · " + b.depT; }
+      }
+    } else if (b.st === "land" && now - b.t2 > 1200) b.st = "gone";
   }
   if (B.list.length && B.list.every(b => b.st === "gone")) { B.list = []; B.next = now + 800; }
+}
+function drawCourt(ctx, g) {
+  const W = g.cw, Hc = g.ch, cxm = W / 2, ny = netY(Hc), ty = topY(Hc), hn = hwNet(W), hb = hwBase(W);
+  ctx.fillStyle = "rgba(30,90,20,.22)"; ctx.beginPath(); ctx.moveTo(cxm - hn, ny); ctx.lineTo(cxm + hn, ny); ctx.lineTo(cxm + hb, ty); ctx.lineTo(cxm - hb, ty); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "rgba(238,242,226,.75)"; ctx.lineWidth = 3; ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = "rgba(238,242,226,.5)"; ctx.beginPath();
+  const sy = yAt(Hc, 0.55), sh = hwAt(W, 0.55);
+  ctx.moveTo(cxm - sh, sy); ctx.lineTo(cxm + sh, sy); ctx.moveTo(cxm, sy); ctx.lineTo(cxm, ny); ctx.stroke();
+  if (S.sport === "padel") { ctx.strokeStyle = "rgba(218,250,84,.8)"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(cxm - hb, ty); ctx.lineTo(cxm + hb, ty); ctx.stroke(); }
+  // net
+  ctx.strokeStyle = "rgba(238,242,226,.9)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cxm - hn * 1.08, ny); ctx.lineTo(cxm + hn * 1.08, ny); ctx.stroke();
+  ctx.strokeStyle = "rgba(238,242,226,.3)"; ctx.lineWidth = 2; ctx.beginPath();
+  for (let x = cxm - hn * 1.08; x <= cxm + hn * 1.08; x += 22) { ctx.moveTo(x, ny); ctx.lineTo(x, ny + Hc * 0.03); }
+  ctx.moveTo(cxm - hn * 1.08, ny + Hc * 0.03); ctx.lineTo(cxm + hn * 1.08, ny + Hc * 0.03); ctx.stroke();
+}
+function drawRacket(ctx, w, g) {
+  const sw = BODY ? BODY.sw : g.cw * 0.2, dx = w.x - w.wx, dy = w.y - w.wy, ang = Math.atan2(dy, dx) - Math.PI / 2;
+  ctx.strokeStyle = "#eef2e2"; ctx.lineWidth = 8; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(w.wx, w.wy); ctx.lineTo(w.x - dx * 0.25, w.y - dy * 0.25); ctx.stroke();
+  const padel = S.sport === "padel", rx = sw * (padel ? 0.34 : 0.3), ry = sw * (padel ? 0.4 : 0.42);
+  ctx.save(); ctx.translate(w.x, w.y); ctx.rotate(ang);
+  ctx.lineWidth = padel ? 10 : 7; ctx.strokeStyle = padel ? "#dafa54" : "#eef2e2";
+  ctx.beginPath();
+  if (padel) { ctx.moveTo(0, ry); ctx.bezierCurveTo(rx * 1.5, ry * 0.6, rx * 1.3, -ry, 0, -ry); ctx.bezierCurveTo(-rx * 1.3, -ry, -rx * 1.5, ry * 0.6, 0, ry); } else ctx.ellipse(0, 0, rx, ry, 0, 0, 7);
+  ctx.fillStyle = padel ? "rgba(218,250,84,.28)" : "rgba(238,242,226,.1)"; ctx.fill(); ctx.stroke();
+  if (padel) { ctx.fillStyle = "rgba(0,0,0,.5)"; for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) { ctx.beginPath(); ctx.arc(i * rx * 0.36, j * ry * 0.3 - ry * 0.05, 3.5, 0, 7); ctx.fill(); } }
+  else { ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(238,242,226,.35)"; ctx.beginPath(); for (let i = -3; i <= 3; i++) { ctx.moveTo(i * rx / 3.4, -ry * 0.9); ctx.lineTo(i * rx / 3.4, ry * 0.9); ctx.moveTo(-rx * 0.9, i * ry / 3.4); ctx.lineTo(rx * 0.9, i * ry / 3.4); } ctx.stroke(); }
+  ctx.restore();
 }
 function render() {
   if (!running) return;
   requestAnimationFrame(render);
   const g = geo(); if (!g) return;
-  const now = performance.now(), k = LAST.k, ctx = g.c.getContext("2d");
+  const now = performance.now(), ctx = g.c.getContext("2d");
   gameStep(g, now);
   ctx.clearRect(0, 0, g.cw, g.ch);
-  if (S.mode === "balls") {
-    const ny = netY(g.ch);
-    ctx.strokeStyle = "rgba(238,242,226,.8)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, ny); ctx.lineTo(g.cw, ny); ctx.stroke();
-    ctx.strokeStyle = "rgba(238,242,226,.28)"; ctx.lineWidth = 2; ctx.beginPath();
-    for (let x = 0; x <= g.cw; x += 26) { ctx.moveTo(x, ny); ctx.lineTo(x, ny + g.ch * 0.035); }
-    ctx.moveTo(0, ny + g.ch * 0.035); ctx.lineTo(g.cw, ny + g.ch * 0.035); ctx.stroke();
-  }
-  const M = i => scr(i, g);
+  if (S.mode === "balls") drawCourt(ctx, g);
   ctx.lineWidth = 5; ctx.lineCap = "round";
   for (const [a, b] of [[LS, LE], [LE, LW], [RS, RE], [RE, RW]]) {
-    const A = M(a), Bp = M(b); if (!A.ok || !Bp.ok) continue;
+    const A = scr(a, g), Bp = scr(b, g); if (!A.ok || !Bp.ok) continue;
     ctx.strokeStyle = "rgba(238,242,226,.55)"; ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(Bp.x, Bp.y); ctx.stroke();
   }
   for (const id of [LW, RW]) {
     const w = WR[id]; if (!w || !w.ok) continue;
     const hot = flashHand && flashHand.id === id && now < flashHand.until;
+    if (S.tool === "racket") drawRacket(ctx, w, g);
     ctx.fillStyle = hot ? "#dafa54" : "rgba(218,250,84,.6)";
-    ctx.beginPath(); ctx.arc(w.x, w.y, hot ? g.cw * 0.05 : g.cw * 0.03, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(S.tool === "racket" ? w.wx : w.x, S.tool === "racket" ? w.wy : w.y, hot ? g.cw * 0.03 : g.cw * 0.018, 0, 7); ctx.fill();
+    if (hot && S.tool !== "racket") { ctx.strokeStyle = "#dafa54"; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(w.x, w.y, g.cw * 0.05, 0, 7); ctx.stroke(); }
   }
   for (const b of B.list) if (b.st !== "gone") {
+    if (b.st === "land") { const u = (now - b.t2) / 1200; ctx.strokeStyle = (b.inside ? "rgba(218,250,84," : "rgba(255,120,100,") + (1 - u * 0.7) + ")"; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(b.lx, b.ly, g.cw * (0.016 + 0.02 * u), 0, 7); ctx.stroke(); if (!b.net) continue; }
     ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.ellipse(b.x, b.y + b.r * 1.6, b.r, b.r * 0.35, 0, 0, 7); ctx.fill();
     ctx.fillStyle = "#dafa54"; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
     ctx.strokeStyle = "rgba(20,26,0,.55)"; ctx.lineWidth = Math.max(1.5, b.r * 0.12); ctx.beginPath(); ctx.arc(b.x - b.r * 1.05, b.y, b.r * 0.9, -0.9, 0.9); ctx.arc(b.x + b.r * 1.05, b.y, b.r * 0.9, Math.PI - 0.9, Math.PI + 0.9); ctx.stroke();

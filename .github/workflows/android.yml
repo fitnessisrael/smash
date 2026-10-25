@@ -16,6 +16,8 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npx cap add android
+      - name: Camera permission (hand/racket mode)
+        run: sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" /><uses-feature android:name="android.hardware.camera" android:required="false" /><application#' android/app/src/main/AndroidManifest.xml
       - run: npm run assets -- --android || true
       - run: npx cap sync android
       - run: cd android && ./gradlew assembleDebug --no-daemon

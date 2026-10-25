@@ -1,7 +1,7 @@
 // smash — business details shown in the legal pages. Fill once, used everywhere.
 export const BIZ = {
   brand: "smash",
-  operator: "פיטנס 360",          // legal name of the business that runs smash
+  operator: "כושר ישראל (FITNESS ISRAEL)",          // legal name of the business that runs smash
   id: "",                          // ע.מ / ח.פ
   email: "",                       // contact email for customers and accessibility requests
   phone: "",                       // optional
