@@ -10,9 +10,10 @@ async function load3d() {
   ({ OrbitControls } = await import("three/addons/controls/OrbitControls.js"));
 }
 
+if (!store.get("v3", false)) { store.set("sport", "padel"); store.set("solo", "drill"); store.set("v3", true); } // new defaults: padel, continuous drill
 const S = {
   sport: store.get("sport", "padel"), side: store.get("side", 1), stroke: store.get("stroke", "fh"),
-  feed: store.get("feed", "mix"), pmode: store.get("pmode", "easy"), solo: store.get("solo", "one"),
+  feed: store.get("feed", "mix"), pmode: store.get("pmode", "easy"), solo: store.get("solo", "drill"),
 };
 if (!account.require()) throw new Error("signup first");
 const me = account.get();

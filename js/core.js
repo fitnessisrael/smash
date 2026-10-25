@@ -145,7 +145,7 @@ export class SwingDetector {
       if (kmh > this.thr && (!this.peak || kmh >= this.peak.kmh)) this.peak = { kmh, q: s.q, t: s.t, wv: s.wv };
       if (this.peak && kmh < this.peak.kmh * 0.8) { hit = this.peak; this.peak = null; this.armed = false; this.calm = 0; }
     } else {
-      this.calm = kmh < this.thr * 0.45 ? this.calm + s.dt : 0;
+      this.calm = s.w * this.lever * 3.6 < this.thr * 0.45 ? this.calm + s.dt : 0;
       if (this.calm > 0.15) this.armed = true;
     }
     this.prev = kmh;

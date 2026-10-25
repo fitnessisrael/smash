@@ -105,6 +105,7 @@ if (!account.require()) throw new Error("no account");
 const paint = () => { const t = $("trial"); if (account.isPro()) { t.textContent = "PRO"; t.className = "chip-trial pro"; } else t.innerHTML = "נותרו <b>" + account.left() + "</b> ניסיונות"; };
 paint();
 
+if (!store.get("v3", false)) { store.set("sport", "padel"); store.set("v3", true); }
 const S = { mode: "balls", which: "all", cam: "user", hand: "r", ball: "fh", sport: store.get("sport", "padel"), tool: store.get("tool", "hand") };
 const setPressed = (id, v) => { for (const x of $(id).children) x.setAttribute("aria-pressed", String(x.dataset.v === v)); };
 for (const id of ["mode", "which", "cam", "hand", "ball", "sport", "tool"]) {
