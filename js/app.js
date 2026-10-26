@@ -1,6 +1,6 @@
 // סמש — phone app
 import { account, PLAN, NATIVE } from "./account.js";
-const TV_HOST = NATIVE ? "smash-alpha-sand.vercel.app" : location.host;
+const TV_HOST = "smash-it.co.il";
 import { Q, SPORTS, strokeName, store, Racket, SwingDetector, Sound, PlayLock, armPose, demoSwing, $, pressGroup, kmhOf } from "./core.js";
 import { showSummary, fmtTime } from "./summary.js";
 // 3D is loaded on demand so the rest of the app works even if it is slow to load
@@ -60,7 +60,7 @@ pressGroup($("solo"), v => { S.solo = v; store.set("solo", v); stepText(); });
 function stepText() { $("setup-step3").textContent = S.solo === "drill" ? "עשה כמה מכות שתרצה. כל מכה נספרת ומשמיעה צליל. בסוף תראה הילוך חוזר של המכה הכי טובה." : "עשה מכה אחת. ההילוך החוזר נפתח לבד."; }
 stepText();
 $("go-replay").onclick = () => { renderStrokes(); show("setup"); };
-$("go-tv").onclick = () => { $("tv-url").textContent = TV_HOST + "/tv.html"; renderFeed(); show("tv"); };
+$("go-tv").onclick = () => { $("tv-url").textContent = TV_HOST + "/tv"; renderFeed(); show("tv"); };
 
 function renderStrokes() {
   const list = SPORTS[S.sport].strokes;
@@ -382,7 +382,7 @@ function renderMetrics(rep, pi) {
 /* ---------------- TV mode: phone is the racket ---------------- */
 let peer = null, conn = null, streamOff = null, hitOff = null, stats = { hits: 0, streak: 0, best: 0 };
 const urlCode = new URLSearchParams(location.search).get("tv");
-if (urlCode) { $("tv-code").value = urlCode; $("tv-url").textContent = TV_HOST + "/tv.html"; renderFeed(); show("tv"); }
+if (urlCode) { $("tv-code").value = urlCode; $("tv-url").textContent = TV_HOST + "/tv"; renderFeed(); show("tv"); }
 
 $("tv-connect").onclick = async () => {
   const code = $("tv-code").value.replace(/\D/g, "");
