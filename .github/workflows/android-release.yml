@@ -58,7 +58,9 @@ jobs:
         env:
           KS_FILE: ${{ runner.temp }}/upload.jks
           KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: cd android && ./gradlew bundleRelease --no-daemon
+        run: |
+          export KS_PASS="$(printf %s "$KS_PASS" | tr -d '[:space:]')"
+          cd android && ./gradlew bundleRelease --no-daemon
       - name: Show merged targetSdk
         run: grep -rho 'targetSdkVersion="[0-9]*"' android/app/build/intermediates/merged_manifests/release 2>/dev/null | head -2 || true
       - uses: actions/upload-artifact@v4
