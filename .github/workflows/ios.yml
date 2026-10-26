@@ -25,6 +25,9 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'smash משתמש במצלמה כדי לזהות את היד או המחבט שלך בזמן האימון. התמונה לא נשמרת ולא נשלחת.'" $P
           /usr/libexec/PlistBuddy -c "Add :NSMotionUsageDescription string 'smash משתמש בחיישני התנועה של הטלפון כדי למדוד את מהירות החבטה.'" $P
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $P
+          # iPhone only: the phone is the racket, so no iPad build / iPad screenshots are needed
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/' ios/App/App.xcodeproj/project.pbxproj
+          grep -n TARGETED_DEVICE_FAMILY ios/App/App.xcodeproj/project.pbxproj
       - name: API key file
         env: { ASC_KEY: "${{ secrets.ASC_KEY }}" }
         run: |
