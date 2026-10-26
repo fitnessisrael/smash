@@ -1,0 +1,67 @@
+name: Android release (Google Play AAB)
+on:
+  workflow_dispatch:
+jobs:
+  aab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm install
+      - run: npm run build
+      - run: npx cap add android
+      - name: Camera permission (hand/racket mode)
+        run: sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" /><uses-feature android:name="android.hardware.camera" android:required="false" /><application#' android/app/src/main/AndroidManifest.xml
+      - run: npm run assets -- --android || true
+      - run: npx cap sync android
+      - name: Target Android 16 (API 36), version code, upload signing
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RUN_NO: ${{ github.run_number }}
+        run: |
+          test -n "$KS_B64" && test -n "$KS_PASS" || { echo "Missing secrets ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          python3 - <<'EOF'
+          import re, os
+          p = "android/variables.gradle"; s = open(p).read()
+          s = re.sub(r"compileSdkVersion = \d+", "compileSdkVersion = 36", s)
+          s = re.sub(r"targetSdkVersion = \d+", "targetSdkVersion = 36", s)
+          open(p, "w").write(s)
+          p = "android/build.gradle"; s = open(p).read()
+          s = re.sub(r"com\.android\.tools\.build:gradle:[\d.]+", "com.android.tools.build:gradle:8.9.1", s)
+          open(p, "w").write(s)
+          open("android/gradle.properties", "a").write("\nandroid.suppressUnsupportedCompileSdk=36\n")
+          p = "android/app/build.gradle"; s = open(p).read()
+          s = re.sub(r"versionCode \d+", "versionCode " + os.environ["RUN_NO"], s)
+          s = re.sub(r'versionName "[^"]*"', 'versionName "1.0"', s)
+          sign = '''signingConfigs {
+                  release {
+                      storeFile file(System.getenv("KS_FILE"))
+                      storePassword System.getenv("KS_PASS")
+                      keyAlias "smash"
+                      keyPassword System.getenv("KS_PASS")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release'''
+          s, n = re.subn(r"buildTypes\s*\{\s*release\s*\{", sign, s, count=1)
+          assert n == 1, "buildTypes block not found"
+          open(p, "w").write(s)
+          EOF
+          grep -n "SdkVersion\|versionCode" android/variables.gradle android/app/build.gradle
+      - name: Build release bundle
+        env:
+          KS_FILE: ${{ runner.temp }}/upload.jks
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: cd android && ./gradlew bundleRelease --no-daemon
+      - name: Show merged targetSdk
+        run: grep -rho 'targetSdkVersion="[0-9]*"' android/app/build/intermediates/merged_manifests/release 2>/dev/null | head -2 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smash-play-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
