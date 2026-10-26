@@ -40,11 +40,11 @@
   </button>
   <a class="mode" href="/hand.html" style="text-decoration:none">
     <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="20" cy="9" r="4"/><path d="M20 14v10M20 18l-9 6M20 18l11-8M20 24l-6 12M20 24l6 12"/></svg>
-    <div><b>משחק עם היד או מחבט</b><span>המצלמה רואה אותך. זורקים עליך כדורים ואתה מחזיר אותם מעל הרשת.</span></div>
+    <div><b>משחק עם היד או מחבט</b><span>עומדים מול מצלמת הטלפון / טאבלט / מחשב. כדורים יעופו לכיוון שלך לחבטות.</span></div>
   </a>
   <button class="mode" id="go-tv">
     <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="7" width="34" height="21" rx="3"/><path d="M14 34h12M20 28v6"/><circle cx="25" cy="17" r="3" fill="currentColor"/></svg>
-    <div><b>משחק מול מסך</b><span>טלוויזיה או טאבלט מראים מגרש וכדור. אתה מכה עם הטלפון.</span></div>
+    <div><b>משחק מול מסך</b><span>עומדים מול טלויזיה / טאבלט / מחשב. ללא מצלמה. רק עם הטלפון שהופך למחבט עם קוד שמחבר בין המכשירים.</span></div>
   </button>
 
   <div id="mine-wrap" hidden>
@@ -89,9 +89,14 @@
   <div class="ctrl" style="justify-content:center;flex-wrap:wrap">
     <button class="pill lime" id="rp-play">⏸</button>
     <button class="pill" id="rp-peak">רגע השיא</button>
+    <button class="pill" id="rp-share">📤 שתף וידאו</button>
     <div class="seg" id="rp-speed" style="flex:1;min-width:160px"><button data-v="0.25">¼×</button><button data-v="0.5">½×</button><button data-v="1">1×</button></div>
   </div>
-  <div class="ctrl" id="rp-marks" hidden style="justify-content:center;flex-wrap:wrap;gap:8px"></div>
+  <div class="ctrl" id="rp-marks" hidden></div>
+  <div id="rp-list-wrap" hidden>
+    <span class="label">ספריית המכות של האימון · מכה מתחת למכה</span>
+    <div class="list" id="rp-list"></div>
+  </div>
   <p class="hint" style="font-size:13px">צהוב = המהירות הכי גבוהה של ראש המחבט, שם צריך להיות המגע. גרור כדי לסובב.</p>
   <div id="rp-metrics" style="display:flex;flex-direction:column;gap:10px"></div>
   <button class="big" id="again">מכה נוספת</button>

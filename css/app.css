@@ -109,3 +109,4 @@ footer{color:var(--muted);font-size:13px;text-align:center;margin-top:auto}
 .mode::after{content:"‹";font-size:38px;line-height:1;margin-inline-start:auto;opacity:.75;flex:none}
 .bigseg button{padding:20px 6px;font-size:24px;font-weight:800}
 .bigseg{padding:6px;border-radius:16px}
+.list button[aria-current="true"]{background:rgba(218,250,84,.08);border-right:3px solid var(--lime);padding-right:10px}

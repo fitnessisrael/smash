@@ -49,7 +49,8 @@ function show(v) {
   current = v; window.scrollTo(0, 0);
   if (v === "home") renderReplays();
 }
-document.addEventListener("click", e => { if (e.target.closest("[data-back]")) { leaveRemote(); stopReplay(); show("home"); } });
+let replayWait = null; // set while a replay was opened from the drill summary: "back" returns to that summary
+document.addEventListener("click", e => { if (e.target.closest("[data-back]")) { leaveRemote(); stopReplay(); show("home"); if (current === "home" && replayWait) { const w = replayWait; replayWait = null; w("back"); } } });
 
 /* ---------------- home ---------------- */
 function setPressed(el, v) { for (const b of el.querySelectorAll("button[data-v]")) b.setAttribute("aria-pressed", String(b.dataset.v === String(v))); }
@@ -235,15 +236,18 @@ async function drill() {
     }
     saveSession(frames, marks, focus); hasVideo = true;
   }
-  const acts = [];
-  if (hasVideo) acts.push({ id: "video", label: `צפה בסשן המלא (${clips.length} מכות)`, primary: true });
-  if (hasBest) acts.push({ id: "best", label: "המכה הטובה ביותר שלי" });
-  acts.push({ id: "done", label: "סיום", primary: !acts.length });
-  const act = await showSummary({ mode: modeT, sport: S.sport, ms, speeds, actions: acts });
-  const list = store.get("replays", []);
-  if (act === "video") openReplay(list.find(r => r.marks) || list[0]);
-  else if (act === "best") openReplay(list.find(r => !r.marks) || list[0]);
-  else show("home");
+  for (let again = false; ; again = true) { // after a replay, "back" returns here, not to the main screen
+    const acts = [];
+    if (hasVideo) acts.push({ id: "video", label: `כל המכות שעשיתי (${clips.length})`, primary: true });
+    if (hasBest) acts.push({ id: "best", label: "המכה הטובה ביותר שלי" });
+    acts.push({ id: "done", label: "סיום", primary: !acts.length });
+    const act = await showSummary({ mode: modeT, sport: S.sport, ms, speeds, actions: acts, save: !again });
+    if (act === "done") { show("home"); return; }
+    const list = store.get("replays", []);
+    const rp = act === "video" ? (list.find(r => r.marks) || list[0]) : (list.find(r => !r.marks) || list[0]);
+    openReplay(rp);
+    await new Promise(res => { replayWait = res; });
+  }
 }
 function saveSession(frames, marks, focus) {
   const th = []; let last = -99; for (const f of frames) if (f.t - last >= 33) { th.push({ t: Math.round(f.t), q: f.q.map(v => +v.toFixed(3)), kmh: +f.kmh.toFixed(0) }); last = f.t; }
@@ -264,15 +268,51 @@ function thin(fr) { // keep ~120 fps max, round numbers to save space
 function setupMsg(text) { show("setup"); $("setup-msg").textContent = text; $("setup-msg").hidden = false; }
 
 /* ---------------- replay viewer ---------------- */
+const blobB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(b); });
+async function shareVideo(blob) { // native: system share sheet (save to Photos, WhatsApp…); web: share sheet or download
+  const name = `smash-${Date.now()}.${blob.type.includes("mp4") ? "mp4" : "webm"}`;
+  const P = window.Capacitor && window.Capacitor.Plugins;
+  if (NATIVE && P && P.Filesystem && P.Share) {
+    try {
+      const f = await P.Filesystem.writeFile({ path: name, data: await blobB64(blob), directory: "CACHE" });
+      await P.Share.share({ title: "smash", text: "smash-it.co.il", url: f.uri, dialogTitle: "שתף את החבטה" });
+      return;
+    } catch (e) { if (/cancel/i.test(String((e && e.message) || e))) return; }
+  }
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "smash", text: "smash-it.co.il" }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
 let R = null; // replay state
-async function openReplay(rep) {
+let SESS = null; // the full session being browsed (its swings are listed one under another)
+const bestMark = M => M.reduce((b, m, i) => (m.kmh > M[b].kmh ? i : b), 0);
+function swingRep(sess, k) { // one swing of a session as its own clip
+  const M = sess.marks, a = M[k].t0, b = k + 1 < M.length ? M[k + 1].t0 : Infinity;
+  const frames = sess.frames.filter(f => f.t >= a && f.t < b).map(f => ({ t: f.t, q: f.q.slice(), kmh: f.kmh }));
+  return { d: sess.d, sport: sess.sport, stroke: sess.stroke, side: sess.side, frames, peak: M[k].kmh, fromSession: true };
+}
+function renderSwingList(k) {
+  $("rp-list-wrap").hidden = !SESS; if (!SESS) return;
+  const M = SESS.marks, bi = bestMark(M);
+  $("rp-list").innerHTML = M.map((m, i) => `<button data-k="${i}" aria-current="${i === k}"><div>מכה ${i + 1}${i === bi ? " · הכי טובה" : ""}<br><span>לחץ לצפייה</span></div><b>${Math.round(m.kmh)} קמ״ש</b></button>`).join("");
+}
+$("rp-list").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (b && SESS) { openReplay(SESS, +b.dataset.k); window.scrollTo({ top: 0, behavior: "smooth" }); } });
+async function openReplay(rep, k) {
   show("replay");
+  SESS = null;
+  if (rep.marks && rep.frames.length) { SESS = rep; if (k == null) k = bestMark(rep.marks); rep = swingRep(SESS, k); }
+  renderSwingList(k);
   try { await load3d(); } catch (e) { $("rp-info").textContent = "התצוגה התלת־ממדית לא נטענה. בדוק חיבור לאינטרנט."; }
   const fr = rep.frames; if (!fr.length) return;
   const t0 = fr[0].t; fr.forEach(f => (f.t -= t0));
   let pi = 0; fr.forEach((f, i) => { if (f.kmh > fr[pi].kmh) pi = i; });
   rep.peak = fr[pi].kmh;
   if (THREE) { if (!R) R = initViewer(); R.load(rep, pi); }
+  if (SESS) $("rp-info").textContent = `מכה ${k + 1} מתוך ${SESS.marks.length} · ${Math.round(rep.peak)} קמ״ש`;
   renderMetrics(rep, pi);
 }
 function stopReplay() { if (R) R.playing = false; }
@@ -287,11 +327,42 @@ function initViewer() {
   $("rp-play").onclick = () => { st.playing = !st.playing; $("rp-play").textContent = st.playing ? "⏸" : "▶"; };
   $("rp-peak").onclick = () => { st.playing = false; $("rp-play").textContent = "▶"; st.t = st.rep.frames[st.pi].t; };
   $("rp-scrub").oninput = e => { st.playing = false; $("rp-play").textContent = "▶"; st.t = e.target.value / 1000 * st.dur; };
-  $("again").onclick = () => show("setup");
+  $("again").onclick = () => { replayWait = null; show("setup"); };
+  /* share: record one loop of the replay to a video with a smash-it.co.il stamp, then share / save it */
+  function drawMark(c, w) { // lime pill, top right
+    const fs = Math.round(w * 0.05), pad = fs * 0.55, t = "smash-it.co.il";
+    c.save(); c.font = `800 ${fs}px Rubik, system-ui, sans-serif`; c.textBaseline = "middle"; c.direction = "ltr";
+    const tw = c.measureText(t).width, bw = tw + pad * 2, bh = fs + pad, x = w - bw - fs * 0.6, y = fs * 0.6, r = bh / 2;
+    c.fillStyle = "rgba(218,250,84,.96)"; c.beginPath();
+    c.moveTo(x + r, y); c.arcTo(x + bw, y, x + bw, y + bh, r); c.arcTo(x + bw, y + bh, x, y + bh, r); c.arcTo(x, y + bh, x, y, r); c.arcTo(x, y, x + bw, y, r); c.closePath(); c.fill();
+    c.fillStyle = "#141a00"; c.fillText(t, x + pad, y + bh / 2 + 1); c.restore();
+  }
+  function shareBtn(text, busy) { const b = $("rp-share"); b.textContent = text; b.disabled = !!busy; }
+  function startRec() {
+    if (st.rec || !st.rep) return;
+    if (typeof MediaRecorder === "undefined") { shareBtn("הדפדפן לא תומך בוידאו"); setTimeout(() => shareBtn("📤 שתף וידאו"), 2500); return; }
+    try {
+      const src = sc.renderer.domElement, k = Math.min(1, 720 / Math.max(src.width, src.height, 1));
+      const cv = document.createElement("canvas"); cv.width = Math.max(2, Math.round(src.width * k / 2) * 2); cv.height = Math.max(2, Math.round(src.height * k / 2) * 2);
+      const type = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const mr = new MediaRecorder(cv.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 3e6 } : {});
+      const chunks = []; mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      st.rec = { mr, cv, ctx: cv.getContext("2d"), chunks, type: mr.mimeType || type || "video/webm" };
+      shareBtn("מקליט…", true); st.t = 0; st.playing = true; $("rp-play").textContent = "⏸";
+      mr.start(250); st.rec.guard = setTimeout(() => st.rec && finishRec(), 40000);
+    } catch (e) { st.rec = null; shareBtn("לא הצלחנו להקליט"); setTimeout(() => shareBtn("📤 שתף וידאו"), 2500); }
+  }
+  function finishRec() {
+    const r = st.rec; if (!r) return; st.rec = null; clearTimeout(r.guard);
+    r.mr.onstop = async () => { shareBtn("📤 שתף וידאו"); if (r.chunks.length) await shareVideo(new Blob(r.chunks, { type: r.type.split(";")[0] })); };
+    try { r.mr.stop(); } catch (e) { shareBtn("📤 שתף וידאו"); }
+  }
+  $("rp-share").onclick = startRec;
+
   window.addEventListener("resize", () => sc.resize());
 
   st.load = (rep, pi) => {
-    st.rep = rep; st.pi = pi; st.t = 0; st.speed = rep.marks ? 1 : 0.25; setPressed($("rp-speed"), st.speed); st.mi = -1; st.dur = rep.frames[rep.frames.length - 1].t; st.playing = true; $("rp-play").textContent = "⏸";
+    st.rep = rep; st.pi = pi; st.t = 0; st.speed = rep.fromSession ? 0.5 : 0.25; setPressed($("rp-speed"), st.speed); st.mi = -1; st.dur = rep.frames[rep.frames.length - 1].t; st.playing = true; $("rp-play").textContent = "⏸";
     sc.setSport(rep.sport);
     if (st.racket) sc.scene.remove(st.racket);
     st.racket = makeRacket(rep.sport); sc.scene.add(st.racket);
@@ -326,7 +397,7 @@ function initViewer() {
     requestAnimationFrame(loop);
     if (current !== "replay" || !st.rep) { last = ts; return; }
     const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
-    if (st.playing) { st.t += dt * 1000 * st.speed; if (st.t > st.dur + 400) st.t = 0; }
+    if (st.playing || st.rec) { st.t += dt * 1000 * st.speed; if (st.t > st.dur + 400) { st.t = 0; if (st.rec) finishRec(); } }
     const fr = st.rep.frames; let i = 0; while (i < fr.length - 2 && fr[i + 1].t < st.t) i++;
     const a = fr[i], b = fr[Math.min(fr.length - 1, i + 1)], f = b.t > a.t ? Math.max(0, Math.min(1, (st.t - a.t) / (b.t - a.t))) : 0;
     const q = Q.slerp(a.q, b.q, f), hand = st.pos[i].hand.map((v, k) => v + (st.pos[Math.min(fr.length - 1, i + 1)].hand[k] - v) * f);
@@ -336,6 +407,7 @@ function initViewer() {
     $("rp-info").dataset.t = dtp.toFixed(2);
     if (st.rep.marks) { const M = st.rep.marks; let mi = 0; for (let k = 0; k < M.length; k++) if (st.t >= M[k].t0) mi = k; if (mi !== st.mi) { st.mi = mi; $("rp-info").textContent = `מכה ${mi + 1} מתוך ${M.length} · ${Math.round(M[mi].kmh)} קמ״ש`; } }
     controls.update(); sc.renderer.render(sc.scene, sc.camera);
+    if (st.rec) { const c = st.rec.ctx, w = st.rec.cv.width, h = st.rec.cv.height; c.drawImage(sc.renderer.domElement, 0, 0, w, h); drawMark(c, w); }
   };
   requestAnimationFrame(loop);
   setTimeout(() => sc.resize(), 50);
