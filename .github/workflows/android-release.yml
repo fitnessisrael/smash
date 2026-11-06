@@ -1,6 +1,8 @@
 name: Android release (Google Play AAB)
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   aab:
     runs-on: ubuntu-latest
@@ -68,3 +70,10 @@ jobs:
         with:
           name: smash-play-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
+      - name: Publish AAB as release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_NO: ${{ github.run_number }}
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab smash-release.aab
+          gh release create "android-$RUN_NO" smash-release.aab --target "$GITHUB_SHA" --title "Android build $RUN_NO" --notes "Signed AAB for Google Play."
