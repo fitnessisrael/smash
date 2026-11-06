@@ -30,6 +30,7 @@ jobs:
           p = "android/variables.gradle"; s = open(p).read()
           s = re.sub(r"compileSdkVersion = \d+", "compileSdkVersion = 36", s)
           s = re.sub(r"targetSdkVersion = \d+", "targetSdkVersion = 36", s)
+          s = re.sub(r"minSdkVersion = \d+", "minSdkVersion = 24", s)
           open(p, "w").write(s)
           p = "android/build.gradle"; s = open(p).read()
           s = re.sub(r"com\.android\.tools\.build:gradle:[\d.]+", "com.android.tools.build:gradle:8.9.1", s)
