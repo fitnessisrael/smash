@@ -3,7 +3,7 @@
 import { cpSync, rmSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync } from "node:fs";
 const out = "www";
 rmSync(out, { recursive: true, force: true }); mkdirSync(out);
-const skip = new Set(["www", "node_modules", "android", "ios", "scripts", "resources", "store", ".git", ".github", "package.json", "package-lock.json", "capacitor.config.json", "vercel.json", "README.md"]);
+const skip = new Set(["www", "node_modules", "android", "ios", "scripts", "resources", "store", "docs", ".git", ".github", "package.json", "package-lock.json", "capacitor.config.json", "vercel.json", "README.md"]);
 for (const f of readdirSync(".")) if (!skip.has(f)) cpSync(f, `${out}/${f}`, { recursive: true });
 cpSync("index.html", `${out}/landing.html`);
 cpSync("index.html", `${out}/index.html`);

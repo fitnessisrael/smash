@@ -57,6 +57,10 @@
     <span class="label">ההילוכים החוזרים שלי · החודש האחרון</span>
     <div class="list" id="replays"></div>
   </div>
+  <div class="feedback">
+    <a class="big ghost" id="feedback" href="mailto:info@smash-it.co.il">💬 שלחו לנו משוב</a>
+    <p class="hint" style="font-size:13px">רעיון, באג או שאלה? כל הודעה נקראת.</p>
+  </div>
   <footer><a href="#" id="del-acc" style="color:inherit">מחיקת חשבון ונתונים</a><br>smash הוא שירות של כושר ישראל · FITNESS ISRAEL. המהירות היא הערכה.<br><a href="/terms.html" style="color:inherit">תנאי שימוש</a> · <a href="/terms.html#safety" style="color:inherit">בטיחות</a> · <a href="/privacy.html" style="color:inherit">פרטיות</a> · <a href="/accessibility.html" style="color:inherit">נגישות</a></footer>
 </section>
 
@@ -75,6 +79,7 @@
       <li><i>3</i><span id="setup-step3">עשה מכה אחת. ההילוך החוזר נפתח לבד.</span></li>
     </ol>
   </div>
+  <div class="msg onb-note" id="coach-note" hidden><b>פעם ראשונה?</b> נתחיל ב-5 מכות מודרכות, באימון רצוף. לפני כל מכה תשמע ותראה מה לעשות.</div>
   <p class="hint">המסך ננעל בזמן האימון, כדי שנגיעות בטעות לא יעצרו אותו. לפתיחה: מחזיקים את הכפתור למטה 2 שניות.</p>
   <div class="msg" id="setup-msg" hidden></div>
   <button class="big" id="start-replay">יאללה</button>
@@ -163,6 +168,7 @@
     <div class="pulse" id="lk-pulse"></div>
     <h2 id="lk-t"></h2>
     <p id="lk-p"></p>
+    <div class="lk-coach" id="lk-coach" role="status" aria-live="polite" hidden></div>
     <div class="huge" id="lk-speed" hidden>—<small> קמ״ש</small></div>
     <div class="stat" id="lk-stats" hidden><div><b id="lk-a">0</b><span id="lk-a-l">מכות</span></div><div><b id="lk-b">0</b><span id="lk-b-l">רצף</span></div><div><b id="lk-c">0</b><span>שיא קמ״ש</span></div></div>
   </div>
