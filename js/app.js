@@ -3,6 +3,7 @@ import { account, PLAN, NATIVE } from "./account.js";
 const TV_HOST = "smash-it.co.il";
 import { Q, SPORTS, strokeName, store, Racket, SwingDetector, Sound, PlayLock, armPose, demoSwing, $, pressGroup, kmhOf } from "./core.js";
 import { showSummary, fmtTime } from "./summary.js";
+import { coach, tour, tip, scoreTip, say, hush, primeVoice, DONE_TEXT, DONE_SAY, MISS_TEXT } from "./onboard.js";
 // 3D is loaded on demand so the rest of the app works even if it is slow to load
 let makeScene, makeRacket, makeBall, poseRacket, COURT, THREE, OrbitControls;
 async function load3d() {
@@ -119,6 +120,7 @@ function ensureSensors() { // must start inside a tap (iPhone permission); share
 let onLockRelease = null;
 const lock = new PlayLock($("lock"), $("lk-hold"), () => onLockRelease && onLockRelease());
 function lockScreen({ mode, title, text, stats = false, hold = "סיום · החזק 2 שניות" }) {
+  $("lk-coach").hidden = true;
   $("lk-mode").textContent = mode || ""; $("lk-t").textContent = title || ""; $("lk-p").textContent = text || "";
   $("lk-speed").hidden = !stats; $("lk-stats").hidden = !stats; $("lk-pulse").hidden = stats; $("lk-hold-t").textContent = hold;
   lock.engage();
@@ -133,6 +135,12 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 $("start-replay").onclick = async () => {
   $("setup-msg").hidden = true;
   if (!gate()) return;
+  primeVoice(); // iPhone: speech must start inside a tap
+  const coaching = coach.active();
+  if (coaching && !coach.tourSeen()) { // first run: 3 short cards (hold, swing, score), with Skip
+    const r = await tour(() => { primeVoice(); if (store.get("safetyOk", false)) ensureSensors(); });
+    if (r === "skip") { coachNote(); }
+  }
   if (store.get("safetyOk", false)) ensureSensors(); // start the permission inside this tap
   if (!(await safety())) return;
   const ok = await ensureSensors();
@@ -140,8 +148,13 @@ $("start-replay").onclick = async () => {
     openReplay({ d: Date.now(), sport: S.sport, stroke: S.stroke, side: S.side, frames: demoSwing(S.stroke), demo: true });
     return;
   }
-  S.solo === "drill" ? drill() : record();
+  coach.active() ? drill(true) : S.solo === "drill" ? drill() : record(); // first 5 swings: guided drill
 };
+// first-run hints on the home and setup screens
+function coachNote() { $("coach-note").hidden = !coach.active(); }
+coachNote();
+if (coach.active()) tip($("go-replay"), "מתחילים כאן: 5 מכות מודרכות שמראות לך בדיוק מה לעשות.", "start");
+function coachShow(title, text) { const c = $("lk-coach"); c.innerHTML = ""; const b = document.createElement("b"); b.textContent = title; const p = document.createElement("span"); p.textContent = text; c.append(b, p); c.hidden = false; }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 async function countIn(isCancelled, lead = 1300) {
   await wait(lead); if (isCancelled()) return false; sound.tick(); flash(); sound.buzz();
@@ -183,12 +196,12 @@ function saveAndOpen(frames, tp, open = true) { // keep ~1.2 s before the peak a
 }
 // drill: every swing gets its own count-in (tick, tick, ding), then ~2.5 s to get ready again.
 // The whole session is recorded (up to one minute of swing clips) and the best swing is kept on the card.
-async function drill() {
-  let stopped = false; onLockRelease = () => { stopped = true; };
-  const modeT = "אימון רצוף · " + strokeName(S.sport, S.stroke);
+async function drill(guided = false) {
+  let stopped = false; onLockRelease = () => { stopped = true; hush(); };
+  const modeT = (guided ? "הדרכה · " : "אימון רצוף · ") + strokeName(S.sport, S.stroke);
   const lever = SPORTS[S.sport].lever;
   lockScreen({ mode: modeT, title: "היכנס לעמדת מוכנות", text: "שני טיקים, ואז צלצול. אחרי כל מכה יש הפסקה קצרה." });
-  let listening = false, det = null, pending = null;
+  let listening = false, det = null, pending = null, afterSay = "";
   const buf = [], speeds = [], clips = []; let n = 0, sum = 0, bestKmh = 0, clipMs = 0;
   const off = racket.on(s => {
     buf.push({ t: s.t, q: s.q.slice(), kmh: kmhOf(s, lever) });
@@ -205,19 +218,32 @@ async function drill() {
       sound.hit(S.sport, h.kmh / 80); sound.buzz(); flash();
       $("lk-speed").innerHTML = `${Math.round(h.kmh)}<small> קמ״ש</small>`;
       $("lk-a").textContent = n; $("lk-b").textContent = Math.round(sum / n); $("lk-c").textContent = Math.round(bestKmh);
+      if (guided && coach.active()) { // guided swing: count it and show what it means
+        const step = coach.step(), k = coach.hit();
+        coachShow(`${step.t} · ${Math.round(h.kmh)} קמ״ש`, k >= 5 ? DONE_TEXT : step.after); afterSay = k >= 5 ? DONE_SAY : step.after;
+      }
     }
   });
   let first = true;
   while (!stopped) {
+    if (guided && coach.active()) { // say what to do on this swing before the count-in
+      const step = coach.step(); coachShow(step.t, step.p);
+      await say(step.say); if (stopped) break;
+    }
     if (!(await countIn(() => stopped, first ? 1300 : 500))) break;
-    if (first) { account.use(); paintTrial(); lockScreen({ mode: modeT, stats: true }); startClock(); $("lk-a-l").textContent = "חבטות"; $("lk-b-l").textContent = "ממוצע קמ״ש"; first = false; }
+    if (first) { const ch = !$("lk-coach").hidden; account.use(); paintTrial(); lockScreen({ mode: modeT, stats: true }); $("lk-coach").hidden = !ch; startClock(); $("lk-a-l").textContent = "חבטות"; $("lk-b-l").textContent = "ממוצע קמ״ש"; first = false; }
     $("lk-t").textContent = "";
     det = new SwingDetector(S.sport); listening = true;
     const t0 = performance.now(), n0 = n;
     while (!stopped && n === n0 && performance.now() - t0 < 9000) await wait(40); // wait for the swing (or repeat the count-in)
     listening = false;
     if (!stopped && n > n0) await wait(700); // let the swing clip finish recording
+    if (guided && !stopped) {
+      if (afterSay) { const t = afterSay; afterSay = ""; await say(t, 7000); }
+      else if (n === n0 && coach.active()) { coachShow(coach.step().t, MISS_TEXT); await say(MISS_TEXT); }
+    }
   }
+  hush(); coachNote();
   off(); onLockRelease = null; const ms = first ? 0 : stopClock();
   if (first) { show("home"); return; }
   // build the session video: the swing clips one after another
@@ -449,6 +475,7 @@ function renderMetrics(rep, pi) {
   $("rp-metrics").innerHTML =
     `<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><span class="label">ציון המכה</span><h2 style="font-size:26px">${total >= 85 ? "מצוין" : total >= 70 ? "טוב מאוד" : total >= 50 ? "בכיוון" : "יש מה לשפר"}</h2></div><div class="huge" style="font-size:64px">${total}</div></div>` +
     M.sort((a, b) => a.s - b.s).map(m => `<div class="metric"><div class="row"><h3>${m.name}</h3><span class="chip ${m.s >= 80 ? "g" : m.s >= 50 ? "w" : "b"}">${m.s}</span></div><div class="row"><span class="v">${m.v}</span></div><p>${m.tip}</p></div>`).join("");
+  scoreTip($("rp-metrics")); // first replay: how to read the score
 }
 
 /* ---------------- TV mode: phone is the racket ---------------- */
@@ -537,4 +564,9 @@ function leaveRemote() {
 
 renderStrokes(); renderReplays();
 
+// feedback: opens the mail app with the device details filled in
+{
+  const body = `\n\n---\nמכשיר: ${navigator.userAgent}\nאפליקציה: ${NATIVE ? "חנות" : "אתר"}`;
+  $("feedback").href = "mailto:info@smash-it.co.il?subject=" + encodeURIComponent("משוב על SMASH IT") + "&body=" + encodeURIComponent(body);
+}
 $("del-acc")?.addEventListener("click", e => { e.preventDefault(); if (confirm("למחוק את החשבון וכל הנתונים מהמכשיר?")) { account.deleteAll(); location.replace("/start.html"); } });
