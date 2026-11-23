@@ -1,0 +1,91 @@
+name: פרומפטר - iOS build to TestFlight (מקור: fitnessisrael/teleprompter)
+on:
+  workflow_dispatch:
+jobs:
+  ios:
+    runs-on: macos-26
+    env:
+      TEAM: 3H4NR4LR48
+      ASC_KEY_ID: DX9CV5KXJ8
+      ASC_ISSUER_ID: 9ff47ebd-a642-4ccb-a296-11aaec452039
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: fitnessisrael/teleprompter
+          ref: main
+      - uses: maxim-lobanov/setup-xcode@v1
+        with: { xcode-version: latest-stable }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npm run build
+      - run: npx cap add ios
+      - run: npx cap sync ios
+      - name: Native camera plugin + Info.plist
+        run: |
+          cp native/NativeCamPlugin.swift native/MainViewController.swift ios/App/App/
+          # רישום הקבצים בפרויקט (אם הפרויקט לא מסנכרן תיקיות אוטומטית)
+          if ! grep -q PBXFileSystemSynchronizedRootGroup ios/App/App.xcodeproj/project.pbxproj; then
+            ruby -e '
+              require "xcodeproj"
+              proj = Xcodeproj::Project.open("ios/App/App.xcodeproj")
+              target = proj.targets.find { |t| t.name == "App" }
+              group = proj.main_group["App"]
+              %w[NativeCamPlugin.swift MainViewController.swift].each do |f|
+                ref = group.new_file(f)
+                target.add_file_references([ref])
+              end
+              proj.save
+            '
+          fi
+          # ה-WebView הראשי הופך ל-MainViewController שרושם את התוסף
+          sed -i '' 's/customClass="CAPBridgeViewController" customModule="Capacitor"/customClass="MainViewController" customModule="App"/' ios/App/App/Base.lproj/Main.storyboard
+          grep -n MainViewController ios/App/App/Base.lproj/Main.storyboard
+          # בדיקה שהקבצים באמת בתוך ה-target (אחרת האפליקציה תקרוס בהפעלה)
+          grep -q PBXFileSystemSynchronizedRootGroup ios/App/App.xcodeproj/project.pbxproj && echo "synced folders" || { grep -c "NativeCamPlugin.swift in Sources" ios/App/App.xcodeproj/project.pbxproj | grep -qv '^0$' && grep -c "MainViewController.swift in Sources" ios/App/App.xcodeproj/project.pbxproj | grep -qv '^0$' || { echo "FILES NOT IN TARGET"; exit 1; }; }
+          P=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'פרומפטר משתמש במצלמה כדי לצלם אותך בזמן שאתה קורא את הטקסט.'" $P
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'פרומפטר משתמש במיקרופון כדי להקליט את הקול שלך.'" $P
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'פרומפטר שומר את הסרטונים שצילמת לגלריה.'" $P
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $P
+          # פורטרט בלבד, אייפון בלבד
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" $P || true
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" $P
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" $P
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/' ios/App/App.xcodeproj/project.pbxproj
+      - name: Compile check (simulator, unsigned)
+        run: |
+          set -o pipefail
+          cd ios/App
+          xcodebuild build -workspace App.xcworkspace -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO 2>&1 | tee $RUNNER_TEMP/build.log | grep -E "error:|warning: .*(NativeCam|MainView)|BUILD" || true
+          grep -E "SwiftCompile.*(NativeCamPlugin|MainViewController)" $RUNNER_TEMP/build.log | head -4
+          grep -q "BUILD SUCCEEDED" $RUNNER_TEMP/build.log
+      - name: API key file
+        env: { ASC_KEY: "${{ secrets.ASC_KEY }}" }
+        run: |
+          mkdir -p ~/private_keys
+          printf '%s\n' "$ASC_KEY" > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+      - name: Archive (unsigned)
+        run: |
+          cd ios/App
+          xcodebuild archive -workspace App.xcworkspace -scheme App -configuration Release \
+            -archivePath $RUNNER_TEMP/App.xcarchive -destination 'generic/platform=iOS' \
+            DEVELOPMENT_TEAM=$TEAM CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0
+      - name: Export and upload
+        run: |
+          cat > $RUNNER_TEMP/export.plist <<PL
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>destination</key><string>upload</string>
+          <key>teamID</key><string>$TEAM</string>
+          <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PL
+          xcodebuild -exportArchive -archivePath $RUNNER_TEMP/App.xcarchive -exportPath $RUNNER_TEMP/out \
+            -exportOptionsPlist $RUNNER_TEMP/export.plist -allowProvisioningUpdates \
+            -authenticationKeyPath $HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID
