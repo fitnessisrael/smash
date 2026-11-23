@@ -1,4 +1,4 @@
-name: פרומפטר - iOS build to TestFlight (מקור: fitnessisrael/teleprompter)
+name: "פרומפטר - iOS build to TestFlight"
 on:
   workflow_dispatch:
 jobs:
