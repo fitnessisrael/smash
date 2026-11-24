@@ -54,6 +54,8 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" $P
           /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" $P
           sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/' ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/' ios/App/App.xcodeproj/project.pbxproj
+          grep -c 'IPHONEOS_DEPLOYMENT_TARGET = 15.0' ios/App/App.xcodeproj/project.pbxproj
       - name: Compile check (simulator, unsigned)
         run: |
           set -o pipefail
